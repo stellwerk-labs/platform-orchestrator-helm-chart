@@ -1,0 +1,48 @@
+# PostgreSQL Cluster configuration (CloudNativePG)
+
+# -- Enable the PostgreSQL cluster
+enabled: true
+
+# -- Cluster settings
+cluster:
+  # -- Number of PostgreSQL instances
+  instances: 1
+  # -- PVC storage size per instance
+  storageSize: 1Gi
+  # -- Storage class name
+  storageClass: standard
+
+# -- List of databases to create
+databases:
+  - name: orchestrator-controlplane
+    owner: controlplane_user
+    passwordSecretName: controlplane-db-secret
+    passwordSecretKey: password
+
+  - name: orchestrator-dataplane
+    owner: dataplane_user
+    passwordSecretName: dataplane-db-secret
+    passwordSecretKey: password
+
+  - name: orchestrator-iam
+    owner: iam_user
+    passwordSecretName: iam-db-secret
+    passwordSecretKey: password
+
+# -- Initial admin/superuser credentials
+admin:
+  # -- Superuser username
+  username: postgres
+  # -- Secret name containing the superuser password
+  passwordSecretName: postgres-admin-secret
+  # -- Key within the secret containing the password
+  passwordSecretKey: password
+
+# -- PostgreSQL server parameters
+postgresql:
+  # -- Shared buffer size
+  sharedBuffers: "256MB"
+  # -- Maximum number of concurrent connections
+  maxConnections: "100"
+  # -- Statement logging level (none, ddl, mod, all)
+  logStatement: "all"

@@ -1,0 +1,19 @@
+1. Get the status of the PostgreSQL cluster:
+  kubectl get cluster platform-orchestrator-cnpg-databases -n my-namespace
+
+2. Wait for the cluster to be ready:
+  kubectl wait --for=condition=ready pod -l postgresql.cnpg.io/cluster=platform-orchestrator-cnpg-databases -n my-namespace --timeout=300s
+
+3. Connect to the databases (from pods in the same namespace):
+
+   Control Plane DB:
+   postgresql://controlplane_user:PASSWORD@platform-orchestrator-cnpg-databases:5432/orchestrator-controlplane
+
+   Data Plane DB:
+   postgresql://dataplane_user:PASSWORD@platform-orchestrator-cnpg-databases:5432/orchestrator-dataplane
+
+   IAM DB:
+   postgresql://iam_user:PASSWORD@platform-orchestrator-cnpg-databases:5432/orchestrator-iam
+
+4. You can get a database password from a corresponding secret, e.g.:
+   kubectl get secret controlplane-db-secret -n platform-orchestrator -o jsonpath='{.data.password}' | base64 --decode

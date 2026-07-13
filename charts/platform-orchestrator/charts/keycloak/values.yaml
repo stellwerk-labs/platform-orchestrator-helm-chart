@@ -1,0 +1,29 @@
+# Keycloak configuration (Identity Provider)
+
+# -- Enable Keycloak
+enabled: true
+
+# -- Number of Keycloak instances
+instances: 1
+
+# -- Container image configuration
+image:
+  # -- Image repository
+  repository: quay.io/keycloak/keycloak
+  # -- Image tag
+  tag: "26.0.5"
+
+# -- Hostname configuration
+hostname:
+  # -- Public hostname for Keycloak (auto-derived from gateway config if empty)
+  hostname: ""
+  # -- Admin console hostname (defaults to the public hostname)
+  admin: ""
+
+# -- Bootstrap admin credentials
+bootstrapAdmin:
+  # -- Secret name containing the initial admin username and password
+  secretName: keycloak-bootstrap-admin
+
+# -- CPU/memory resource requests and limits
+resources: {}

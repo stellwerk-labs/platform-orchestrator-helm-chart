@@ -1,0 +1,194 @@
+environments:
+  default:
+    values:
+      - envs/default/state-values.yaml
+  local:
+    values:
+      - envs/local/state-values.yaml
+---
+repositories:
+  - name: cnpg
+    url: https://cloudnative-pg.github.io/charts
+  - name: seaweedfs-operator
+    url: https://seaweedfs.github.io/seaweedfs-operator
+  - name: openbao
+    url: https://openbao.github.io/openbao-helm
+  - name: opentelemetry-operator
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+
+releases:
+  - name: envoy-gateway
+    namespace: envoy-gateway-system
+    createNamespace: true
+    chart: oci://docker.io/envoyproxy/gateway-helm
+    version: "v1.6.1"
+    installed: {{ .StateValues.installEnvoyGateway }}
+    wait: true
+    timeout: 300
+
+  - name: gatewayclass
+    namespace: envoy-gateway-system
+    chart: ./charts/gatewayclass
+    installed: {{ .StateValues.installEnvoyGateway }}
+    wait: true
+    timeout: 300
+    needs:
+      - envoy-gateway-system/envoy-gateway
+    values:
+      - {{ .StateValues.gatewayclassValues | toYaml | nindent 8 }}
+
+  - name: cnpg
+    namespace: cnpg-system
+    createNamespace: true
+    chart: cnpg/cloudnative-pg
+    version: "0.27.0"
+    installed: {{ .StateValues.installPostgres }}
+    wait: true
+    timeout: 600
+
+  - name: seaweedfs-operator
+    namespace: seaweedfs-operator-system
+    createNamespace: true
+    chart: seaweedfs-operator/seaweedfs-operator
+    version: "0.1.11"
+    installed: {{ .StateValues.installSeaweed }}
+    wait: true
+    timeout: 300
+    values:
+      - {{ .StateValues.seaweedfsOperatorValues | toYaml | nindent 8 }}
+
+  - name: cert-manager
+    namespace: cert-manager
+    createNamespace: true
+    chart: oci://quay.io/jetstack/charts/cert-manager
+    version: "v1.19.2"
+    installed: {{ .StateValues.installCertManager }}
+    wait: true
+    timeout: 600
+    set:
+      - name: crds.enabled
+        value: true
+
+  - name: rabbitmq-cluster-operator
+    namespace: rabbitmq-system
+    createNamespace: true
+    chart: ./charts/rabbitmq-cluster-operator
+    installed: {{ .StateValues.installRabbitMQ }}
+    wait: true
+    timeout: 600
+    needs:
+    {{- if .StateValues.installCertManager }}
+      - cert-manager/cert-manager
+    {{- end }}
+
+  - name: spicedb-operator
+    namespace: spicedb-operator
+    createNamespace: true
+    chart: ./charts/spicedb-operator
+    installed: {{ .StateValues.installSpiceDB }}
+    wait: true
+    timeout: 300
+
+  - name: keycloak-operator
+    namespace: keycloak
+    createNamespace: true
+    chart: ./charts/keycloak-operator
+    installed: {{ .StateValues.installKeycloak }}
+    wait: true
+    timeout: 300
+
+  - name: openbao
+    namespace: openbao
+    createNamespace: true
+    chart: openbao/openbao
+    version: "0.18.0"
+    installed: {{ .StateValues.installVault }}
+    wait: true
+    timeout: 300
+    values:
+      - {{ .StateValues.vaultValues | toYaml | nindent 8 }}
+    hooks:
+      - events: ["postsync"]
+        command: "bash"
+        args:
+          - "scripts/openbao-setup.sh"
+
+  - name: cluster-issuer
+    namespace: cert-manager
+    chart: ./charts/cluster-issuer
+    installed: {{ .StateValues.installCertManager }}
+    needs:
+      - cert-manager/cert-manager
+
+  - name: opentelemetry-operator
+    namespace: opentelemetry-operator-system
+    createNamespace: true
+    chart: opentelemetry-operator/opentelemetry-operator
+    version: "0.105.0"
+    installed: {{ .StateValues.installOpenTelemetry }}
+    wait: true
+    timeout: 600
+    needs:
+      - cert-manager/cluster-issuer
+    values:
+      - {{ .StateValues.openTelemetryOperatorValues | toYaml | nindent 8 }}
+    {{- if .StateValues.autoInitVault }}
+    hooks:
+      - events: ["postsync"]
+        command: "bash"
+        args:
+          - "-c"
+          - "i=0; while [ $i -lt 40 ]; do kubectl get mutatingwebhookconfiguration opentelemetry-operator-mutation -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2>/dev/null | grep -q . && kubectl get endpoints opentelemetry-operator-webhook -n opentelemetry-operator-system -o jsonpath='{.subsets[0].addresses[0].ip}' 2>/dev/null | grep -q . && exit 0; sleep 3; i=$((i+1)); done; exit 1"
+    {{- end }}
+
+  - name: opentelemetry
+    namespace: opentelemetry
+    createNamespace: true
+    chart: ./charts/opentelemetry
+    installed: {{ .StateValues.installOpenTelemetry }}
+    wait: true
+    timeout: 300
+    needs:
+      - opentelemetry-operator-system/opentelemetry-operator
+    values:
+      - {{ .StateValues.openTelemetryValues | toYaml | nindent 8 }}
+
+  - name: platform-orchestrator
+    namespace: platform-orchestrator
+    createNamespace: true
+    chart: ./charts/platform-orchestrator
+    wait: true
+    timeout: 600
+    needs:
+      {{- if .StateValues.installEnvoyGateway }}
+      - envoy-gateway-system/gatewayclass
+      {{- end }}
+      {{- if .StateValues.installPostgres }}
+      - cnpg-system/cnpg
+      {{- end }}
+      {{- if .StateValues.installRabbitMQ }}
+      - rabbitmq-system/rabbitmq-cluster-operator
+      {{- end }}
+      {{- if .StateValues.installSpiceDB }}
+      - spicedb-operator/spicedb-operator
+      {{- end }}
+      {{- if .StateValues.installVault }}
+      - openbao/openbao
+      {{- end }}
+      {{- if .StateValues.installKeycloak }}
+      - keycloak/keycloak-operator
+      {{- end }}
+      {{- if .StateValues.installOpenTelemetry }}
+      - opentelemetry/opentelemetry
+      {{- end }}
+    values:
+      - {{ .StateValues.platformOrchestratorValues | toYaml | nindent 8 }}
+    {{- if .StateValues.initialOrgId }}
+    hooks:
+      - events: ["postsync"]
+        command: "bash"
+        args:
+          - "scripts/create-initial-org.sh"
+          - {{ .StateValues.initialOrgId | quote }}
+          - {{ .StateValues.platformOrchestratorValues.global.gatewayApi.backend.hostname | quote }}
+    {{- end }}

@@ -1,0 +1,34 @@
+apiVersion: v2
+name: platform-orchestrator
+description: Platform Orchestrator
+type: application
+version: 0.1.0
+appVersion: "0.0.0"
+
+dependencies:
+  - name: backend-module
+    alias: control-plane
+    version: "0.1.0"
+  - name: backend-module
+    alias: data-plane
+    version: "0.1.0"
+  - name: backend-module
+    alias: iam
+    version: "0.1.0"
+  - name: console
+    version: "0.1.0"
+  - name: cnpg-databases
+    version: "0.1.0"
+    condition: cnpg-databases.enabled
+  - name: rabbitmq
+    version: "0.1.0"
+    condition: rabbitmq.enabled
+  - name: seaweed
+    version: "0.1.0"
+    condition: seaweed.enabled
+  - name: spicedb
+    version: "0.1.0"
+    condition: spicedb.enabled
+  - name: keycloak
+    version: "0.1.0"
+    condition: keycloak.enabled

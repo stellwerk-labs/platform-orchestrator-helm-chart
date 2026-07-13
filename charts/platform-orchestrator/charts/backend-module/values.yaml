@@ -1,0 +1,94 @@
+# Default values for backend-module.
+# This chart deploys a Platform Orchestrator backend module.
+
+# -- Number of replicas
+replicaCount: 1
+
+# -- Container image configuration
+image:
+  # -- Image repository
+  repository: docker.io/library/busybox
+  # -- Image tag
+  tag: latest
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+
+# -- Service account configuration
+serviceAccount:
+  # -- Create a dedicated service account
+  create: true
+  # -- Annotations to add to the service account
+  annotations: {}
+  # -- Override the service account name (defaults to fullname)
+  name: ""
+  # -- Allow the service account to create tokens (needed for Vault auth)
+  allowCreateToken: false
+
+# -- Additional pod annotations
+podAnnotations: {}
+# -- Additional pod labels
+podLabels: {}
+
+# -- Pod-level security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Service configuration
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 8080
+  # targetPort: 8080
+  # nodePort: null
+  # -- Create a headless service (required for data plane internal communication)
+  createHeadless: false
+
+# -- CPU/memory resource requests and limits
+resources: {}
+  # limits:
+  #   cpu: 200m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Pod affinity rules
+affinity: {}
+# -- Node selector constraints
+nodeSelector: {}
+# -- Pod tolerations
+tolerations: []
+
+# -- Additional environment variables (typically secret references)
+env: []
+
+# -- Names of secrets to load as environment variables via envFrom
+envFromSecrets: []
+
+# -- Environment variables included in the ConfigMap
+config: {}
+
+# -- OpenTelemetry configuration
+otel:
+  # -- Enable OpenTelemetry instrumentation
+  enabled: false
+  # -- OTEL environment name (used in resource attributes)
+  env: "production"
+
+# -- Gateway API HTTPRoute configuration (created when global Gateway API is enabled)
+gatewayApi:
+  route: {}
+
+# -- Gateway API HTTPRoute for OIDC provider (created when global Gateway API is enabled)
+gatewayApiOidc:
+  route: {}

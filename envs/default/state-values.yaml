@@ -1,0 +1,87 @@
+installEnvoyGateway: true
+
+installPostgres: true
+
+installCertManager: true
+
+installRabbitMQ: true
+
+installSpiceDB: true
+
+installKeycloak: true
+
+installSeaweed: true
+
+installOpenTelemetry: true
+
+installVault: true
+
+autoInitVault: true
+
+initialOrgId: ""
+
+gatewayclassValues: {}
+
+platformOrchestratorValues: {}
+
+seaweedfsOperatorValues:
+  webhook:
+    enabled: false
+  serviceMonitor:
+    enabled: false
+  grafanaDashboard:
+    enabled: false
+
+vaultValues:
+  injector:
+    enabled: false
+  server:
+    standalone:
+      enabled: false
+    dataStorage:
+      enabled: true
+      size: 1Gi
+    ha:
+      enabled: true
+      replicas: 1
+      raft:
+        enabled: true
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+
+          telemetry {
+            unauthenticated_metrics_access = true
+          }
+        }
+
+        telemetry {
+          disable_hostname = true
+          prometheus_retention_time = "12h"
+        }
+
+openTelemetryOperatorValues:
+  manager:
+    createRbacPermissions: true
+  admissionWebhooks:
+    certManager:
+      enabled: true
+      issuerRef:
+        name: selfsigned-cluster-issuer
+        kind: ClusterIssuer
+      duration: 8760h
+      renewBefore: 360h
+
+openTelemetryValues:
+  collector:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 400Mi
+      limits:
+        cpu: "1"
+        memory: 2Gi

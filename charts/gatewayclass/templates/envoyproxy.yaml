@@ -1,0 +1,40 @@
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: {{ .Values.name }}-proxy-config
+spec:
+  mergeGateways: {{ .Values.mergeGateways }}
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: {{ .Values.service.type }}
+        {{- if eq .Values.service.type "NodePort" }}
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - name: http-80
+                  port: 80
+                  targetPort: 10080
+                  nodePort: {{ .Values.service.nodePorts.http }}
+                  protocol: TCP
+                - name: https-443
+                  port: 443
+                  targetPort: 10443
+                  nodePort: {{ .Values.service.nodePorts.https }}
+                  protocol: TCP
+        {{- end }}
+        {{- if eq .Values.service.type "LoadBalancer" }}
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              {{- if .Values.service.externalIPs }}
+              externalIPs:
+              {{- range .Values.service.externalIPs }}
+                - {{ . | quote }}
+              {{- end }}
+              {{- end }}
+        {{- end }}

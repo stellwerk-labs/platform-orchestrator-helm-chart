@@ -1,0 +1,125 @@
+installEnvoyGateway: true
+
+installPostgres: true
+
+installCertManager: true
+
+installRabbitMQ: true
+
+installSpiceDB: true
+
+installKeycloak: true
+
+installSeaweed: true
+
+installOpenTelemetry: true
+
+installVault: true
+
+autoInitVault: true
+
+initialOrgId: "my-org"
+
+gatewayclassValues:
+  mergeGateways: true
+  service:
+    type: NodePort
+    nodePorts:
+      http: 30080
+      https: 30443
+
+platformOrchestratorValues:
+  global:
+    gatewayApi:
+      backend:
+        hostname: "api.platform-orchestrator.dev"
+        cors:
+          allowOrigins:
+            - "https://*.platform-orchestrator.dev"
+      frontend:
+        hostname: "console.platform-orchestrator.dev"
+        cors:
+          allowOrigins:
+            - "https://*.platform-orchestrator.dev"
+      keycloak:
+        hostname: "keycloak.platform-orchestrator.dev"
+      oidc:
+        hostname: "oidc.platform-orchestrator.dev"
+        http: true
+        https: true
+        tls:
+          certificateRefs:
+            - name: oidc-platform-orchestrator-cert
+              kind: Secret
+  keycloak:
+    resources:
+      requests:
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+  data-plane:
+    image:
+      repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
+    config:
+      RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v1.0.0
+      OIDC_ISSUER_URL: "https://oidc.platform-orchestrator.dev"
+    gatewayApiOidc:
+      route:
+        matches:
+          - path:
+              type: RegularExpression
+              value: "/(.well-known/openid-configuration|.well-known/jwks)"
+  control-plane:
+    image:
+      repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
+  iam:
+    image:
+      repository: ghcr.io/stellwerk-labs/platform-orchestrator-iam
+  console:
+    image:
+      repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
+
+seaweedfsOperatorValues:
+  webhook:
+    enabled: false
+  serviceMonitor:
+    enabled: false
+  grafanaDashboard:
+    enabled: false
+
+openTelemetryOperatorValues:
+  manager:
+    createRbacPermissions: true
+  admissionWebhooks:
+    certManager:
+      enabled: true
+      issuerRef:
+        name: selfsigned-cluster-issuer
+        kind: ClusterIssuer
+      duration: 8760h
+      renewBefore: 360h
+
+openTelemetryValues: {}
+
+vaultValues:
+  injector:
+    enabled: false
+  server:
+    standalone:
+      enabled: false
+    dataStorage:
+      enabled: true
+      size: 1Gi
+    ha:
+      enabled: true
+      replicas: 1
+      raft:
+        enabled: true
+      config: |
+        ui = true
+
+        listener "tcp" {
+          tls_disable = 1
+          address = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }

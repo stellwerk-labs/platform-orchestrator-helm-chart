@@ -1,0 +1,81 @@
+# Default values for console.
+# This chart deploys a Platform Orchestrator console.
+
+# -- Number of replicas
+replicaCount: 1
+
+# -- Container image configuration
+image:
+  # -- Image repository
+  repository: docker.io/library/busybox
+  # -- Image tag
+  tag: latest
+  # -- Image pull policy
+  pullPolicy: IfNotPresent
+
+# -- Additional pod annotations
+podAnnotations: {}
+# -- Additional pod labels
+podLabels: {}
+
+# -- Pod-level security context
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+# -- Container-level security context
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# -- Service configuration
+service:
+  # -- Service type
+  type: ClusterIP
+  # -- Service port
+  port: 9000
+  # targetPort: 9000
+  # nodePort: null
+
+# -- CPU/memory resource requests and limits
+resources: {}
+  # limits:
+  #   cpu: 200m
+  #   memory: 256Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Pod affinity rules
+affinity: {}
+# -- Node selector constraints
+nodeSelector: {}
+# -- Pod tolerations
+tolerations: []
+
+# -- Names of secrets to load as environment variables via envFrom
+envFromSecrets: []
+
+# -- Environment variables included in the ConfigMap
+config:
+  # -- ConfigCat SDK key for feature flags (leave empty to disable)
+  CONFIG_CAT_SDK_KEY: ""
+  # -- Datadog client token for RUM monitoring (leave empty to disable)
+  DATADOG_CLIENT_TOKEN: ""
+  # -- Environment name
+  ENVIRONMENT_NAME: "production"
+  # -- Google OAuth client ID for social login button (leave empty to hide)
+  GOOGLE_CLIENT_ID: ""
+  # -- Microsoft OAuth client ID for social login button (leave empty to hide)
+  MICROSOFT_CLIENT_ID: ""
+
+# -- Gateway API HTTPRoute configuration (created when global Gateway API is enabled)
+gatewayApi:
+  route:
+    matches:
+      - path:
+          type: PathPrefix
+          value: "/"

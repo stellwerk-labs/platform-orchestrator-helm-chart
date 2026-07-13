@@ -1,0 +1,111 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.description" . }}
+
+## Architecture
+
+The chart deploys the following components:
+
+| Component | Subchart | Description |
+|-----------|----------|-------------|
+| **Control Plane** | `backend-module` (alias) | Manages orgs, projects, environments, modules, and runners |
+| **Data Plane** | `backend-module` (alias) | Handles deployments, active resources, and logs |
+| **IAM** | `backend-module` (alias) | Authentication, authorization, SSO, and user management |
+| **Console** | `console` | Web-based UI |
+| **PostgreSQL** | `cnpg-databases` | CloudNativePG-managed PostgreSQL cluster |
+| **RabbitMQ** | `rabbitmq` | AMQP message broker |
+| **SeaweedFS** | `seaweed` | S3-compatible object storage for runner logs |
+| **SpiceDB** | `spicedb` | Zanzibar-inspired authorization engine |
+| **Keycloak** | `keycloak` | Identity provider and SSO |
+
+## Prerequisites
+
+- Kubernetes 1.27+
+- Helm 3.x
+- [cert-manager](https://cert-manager.io/) (for TLS certificates)
+- [Gateway API CRDs](https://gateway-api.sigs.k8s.io/) and a gateway controller (e.g., Envoy Gateway)
+- [CloudNativePG Operator](https://cloudnative-pg.io/) (if using the in-cluster PostgreSQL)
+- [RabbitMQ Cluster Operator](https://www.rabbitmq.com/kubernetes/operator/operator-overview) (if using the in-cluster RabbitMQ)
+- OpenBao (external dependency, Vault-compatible)
+
+## Installation
+
+```bash
+helm install platform-orchestrator ./charts/platform-orchestrator \
+  --namespace platform-orchestrator \
+  --create-namespace \
+  -f my-values.yaml
+```
+
+{{ template "chart.valuesSection" . }}
+
+<!-- SUBCHART_VALUES_START -->
+<!-- SUBCHART_VALUES_END -->
+
+## Environment Variables from Secrets
+
+Each backend service and the console can have secrets injected as environment
+variables via `env` (individual `secretKeyRef` entries) or `envFromSecrets`
+(entire secrets mounted as env vars). Both are fully overridable in your values
+file. The tables below document the **default** configuration.
+
+### Control Plane (`control-plane.env`)
+
+| Env Var | Default Secret Name | Secret Key | Description |
+|---------|---------------------|------------|-------------|
+| `DATABASE_USER` | `controlplane-db-secret` | `username` | PostgreSQL username |
+| `DATABASE_PASSWORD` | `controlplane-db-secret` | `password` | PostgreSQL password |
+| `AMQP_USERNAME` | `platform-orchestrator-rabbitmq-platform-user-credentials` | `username` | RabbitMQ username |
+| `AMQP_PASSWORD` | `platform-orchestrator-rabbitmq-platform-user-credentials` | `password` | RabbitMQ password |
+
+### Data Plane (`data-plane.env`)
+
+| Env Var | Default Secret Name | Secret Key | Description |
+|---------|---------------------|------------|-------------|
+| `DATABASE_USER` | `dataplane-db-secret` | `username` | PostgreSQL username |
+| `DATABASE_PASSWORD` | `dataplane-db-secret` | `password` | PostgreSQL password |
+| `AMQP_USERNAME` | `platform-orchestrator-rabbitmq-platform-user-credentials` | `username` | RabbitMQ username |
+| `AMQP_PASSWORD` | `platform-orchestrator-rabbitmq-platform-user-credentials` | `password` | RabbitMQ password |
+| `RUNNER_TOKEN_SALT` | `platform-orchestrator-secrets` | `runnerTokenSalt` | Salt for runner authentication tokens |
+| `RUNNER_LOGS_BUCKET_CREDS` | `platform-orchestrator-s3-admin-credentials` | `credentials_json` | S3 credentials for runner log storage |
+
+### IAM (`iam.env`)
+
+| Env Var | Default Secret Name | Secret Key | Description |
+|---------|---------------------|------------|-------------|
+| `DATABASE_USER` | `iam-db-secret` | `username` | PostgreSQL username |
+| `DATABASE_PASSWORD` | `iam-db-secret` | `password` | PostgreSQL password |
+| `AMQP_USERNAME` | `platform-orchestrator-rabbitmq-platform-user-credentials` | `username` | RabbitMQ username |
+| `AMQP_PASSWORD` | `platform-orchestrator-rabbitmq-platform-user-credentials` | `password` | RabbitMQ password |
+| `SPICEDB_PRE_SHARED_KEY` | `spicedb-cluster-config` | `preshared_key` | SpiceDB pre-shared authentication key |
+| `KEYCLOAK_CLIENT_SECRET` | `keycloak-client-secret` | `clientSecret` | Keycloak OIDC client secret |
+| `SENDGRID_API_KEY` | | | SendGrid API key to enable email invitations (disabled by default) |
+| `SSO_STATE_SECRET` | `platform-orchestrator-secrets` | `ssoStateSecret` | Secret for SSO state parameter signing |
+| `SUPER_USER_TOKEN` | `platform-orchestrator-secrets` | `superUserToken` | Admin API authentication token |
+| `WORKOS_API_KEY` | | | WorkOS API key to enable SSO (disabled by default) |
+| `WORKOS_CLIENT_ID` | | | WorkOS client ID to enable SSO (disabled by default) |
+
+### Console
+
+The console does not inject secrets via `env` by default. Use `console.envFromSecrets`
+to mount additional secrets as environment variables if needed.
+
+## Secrets
+
+All secrets are **auto-generated** by the chart (or its subcharts) on first install and preserved across upgrades. No pre-existing secrets are required.
+
+| Secret Name | Keys | Created By | Used By |
+|-------------|------|------------|---------|
+| `postgres-admin-secret` | `username`, `password` | cnpg-databases | CNPG cluster admin |
+| `controlplane-db-secret` | `username`, `password` | cnpg-databases | Control Plane |
+| `dataplane-db-secret` | `username`, `password` | cnpg-databases | Data Plane |
+| `iam-db-secret` | `username`, `password` | cnpg-databases | IAM |
+| `spicedb-db-secret` | `username`, `password` | cnpg-databases | SpiceDB |
+| `keycloak-db-secret` | `username`, `password` | cnpg-databases | Keycloak |
+| `spicedb-cluster-config` | `preshared_key`, `datastore_uri` | spicedb | SpiceDB, IAM |
+| `keycloak-bootstrap-admin` | `username`, `password` | keycloak | Keycloak |
+| `keycloak-client-secret` | `clientSecret` | keycloak | Keycloak, IAM |
+| `platform-orchestrator-rabbitmq-platform-user-credentials` | `username`, `password` | RabbitMQ Operator (via User CRD) | Control Plane, Data Plane, IAM |
+| `platform-orchestrator-s3-admin-credentials` | `access_key_id`, `secret_access_key`, `credentials_json` | seaweed | Data Plane |
+| `s3-secret` | `config` | seaweed | SeaweedFS Filer |
+| `platform-orchestrator-secrets` | `runnerTokenSalt`, `ssoStateSecret`, `superUserToken` | parent chart | Data Plane, IAM |

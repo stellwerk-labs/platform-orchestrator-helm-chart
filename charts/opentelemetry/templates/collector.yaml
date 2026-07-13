@@ -1,0 +1,57 @@
+{{- if .Values.enabled }}
+{{- $defaultConfig := .Values.collector.config | default dict }}
+{{- $defaultExporters := get $defaultConfig "exporters" | default dict }}
+{{- $defaultService := get $defaultConfig "service" | default dict }}
+{{- $override := .Values.collector.override | default dict }}
+{{- $overrideExporters := get $override "exporters" | default dict }}
+{{- $overrideService := get $override "service" | default dict }}
+{{- $mergedExporters := mustMergeOverwrite (deepCopy $defaultExporters) $overrideExporters }}
+{{- $mergedService := mustMergeOverwrite (deepCopy $defaultService) $overrideService }}
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: {{ .Values.collector.name }}
+spec:
+  mode: {{ .Values.collector.mode }}
+  image: {{ include "opentelemetry.collector.image" . }}
+  serviceAccount: {{ .Values.collector.serviceAccount }}
+
+  resources:
+    {{- toYaml .Values.collector.resources | nindent 4 }}
+
+  ports:
+    {{- toYaml .Values.collector.ports | nindent 4 }}
+
+  env:
+    {{- toYaml .Values.collector.env | nindent 4 }}
+
+  {{- with .Values.collector.volumes }}
+  volumes:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.collector.volumeMounts }}
+  volumeMounts:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.collector.tolerations }}
+  tolerations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  {{- with .Values.collector.securityContext }}
+  securityContext:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+  config:
+    receivers:
+      {{- toYaml (get $defaultConfig "receivers") | nindent 6 }}
+    processors:
+      {{- toYaml (get $defaultConfig "processors") | nindent 6 }}
+    exporters:
+      {{- toYaml $mergedExporters | nindent 6 }}
+    service:
+      {{- toYaml $mergedService | nindent 6 }}
+{{- end }}

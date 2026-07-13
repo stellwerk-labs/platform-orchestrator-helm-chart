@@ -1,0 +1,32 @@
+{{- $saName := .Values.serviceAccount.name -}}
+{{- if .Values.serviceAccount.create }}
+{{- $saName = include "backend-module.fullname" . }}
+{{- end }}
+{{- if .Values.serviceAccount.allowCreateToken }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "backend-module.fullname" . }}-token-creator
+  labels:
+    {{- include "backend-module.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: [{{ $saName | quote }}]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "backend-module.fullname" . }}-token-creator
+  labels:
+    {{- include "backend-module.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "backend-module.fullname" . }}-token-creator
+subjects:
+  - kind: ServiceAccount
+    name: {{ $saName }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

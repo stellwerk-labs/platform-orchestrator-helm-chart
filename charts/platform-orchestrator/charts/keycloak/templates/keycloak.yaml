@@ -1,0 +1,52 @@
+{{- $proto := "http" }}
+{{- if $.Values.global.gatewayApi.keycloak.https }}
+{{- $proto = "https" }}
+{{- end }}
+{{- $defaultHostname := "" }}
+{{- if .Values.global.gatewayApi.keycloak.hostname }}
+{{- $defaultHostname = printf "%s://%s" $proto .Values.global.gatewayApi.keycloak.hostname }}
+{{- end }}
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: {{ include "keycloak.fullname" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.instances }}
+  image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+  startOptimized: false
+  db:
+    vendor: postgres
+    host: {{ .Values.global.keycloak.database.host }}
+    port: {{ .Values.global.keycloak.database.port }}
+    database: {{ .Values.global.keycloak.database.name }}
+    usernameSecret:
+      name: {{ .Values.global.keycloak.database.passwordSecretName }}
+      key: username
+    passwordSecret:
+      name: {{ .Values.global.keycloak.database.passwordSecretName }}
+      key: {{ .Values.global.keycloak.database.passwordSecretKey }}
+  features:
+    enabled: ["hostname:v2"]
+  {{- if or .Values.hostname.hostname $defaultHostname }}
+  hostname:
+    hostname: {{ .Values.hostname.hostname | default $defaultHostname }}
+    backchannelDynamic: true
+    {{- if .Values.hostname.admin }}
+    admin: {{ .Values.hostname.admin }}
+    {{- end }}
+  {{- end }}
+  http:
+    httpEnabled: true
+  ingress:
+    enabled: false
+  proxy:
+    headers: xforwarded
+  bootstrapAdmin:
+    user:
+      secret: {{ .Values.bootstrapAdmin.secretName }}
+  {{- if .Values.resources }}
+  resources:
+    {{- toYaml .Values.resources | nindent 4 }}
+  {{- end }}

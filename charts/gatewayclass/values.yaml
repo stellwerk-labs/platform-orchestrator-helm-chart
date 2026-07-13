@@ -1,0 +1,14 @@
+name: envoy-gateway
+
+# Merge all Gateways using this GatewayClass into a single Envoy proxy
+mergeGateways: false
+
+# Service configuration for the Envoy proxy
+service:
+  # Service type: ClusterIP, NodePort, or LoadBalancer
+  type: ClusterIP
+
+  # NodePort configuration (only used when type is NodePort)
+  nodePorts:
+    http: 30080
+    https: 30443

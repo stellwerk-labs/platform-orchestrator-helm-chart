@@ -1,0 +1,10 @@
+apiVersion: v2
+name: cnpg-databases
+description: CloudNativePG cluster with databases for Platform Orchestrator
+
+
+type: application
+
+version: 0.1.0
+
+appVersion: "0.0.0"

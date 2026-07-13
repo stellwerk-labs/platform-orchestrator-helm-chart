@@ -1,0 +1,227 @@
+# OpenTelemetry Collector configuration
+enabled: true
+
+collector:
+  name: otel-agent
+  namespace: opentelemetry-operator-system
+  mode: daemonset
+
+  image:
+    repository: otel/opentelemetry-collector-contrib
+    tag: "0.144.0"
+
+  serviceAccount: otel-collector-account
+
+  namespace_labels:
+    manage: true
+    labels:
+      pod-security.kubernetes.io/enforce: privileged
+      pod-security.kubernetes.io/warn: privileged
+      pod-security.kubernetes.io/audit: privileged
+
+  # RBAC rules for the collector ClusterRole.
+  # Adjust based on which receivers/processors are enabled.
+  rbac:
+    rules:
+      # Required by kubeletstats receiver
+      - apiGroups: [""]
+        resources: ["pods", "namespaces", "nodes", "nodes/stats", "endpoints"]
+        verbs: ["get", "list", "watch"]
+      # Required by k8sattributes processor
+      - apiGroups: ["apps"]
+        resources: ["replicasets", "deployments", "daemonsets", "statefulsets"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["batch"]
+        resources: ["jobs", "cronjobs"]
+        verbs: ["get", "list", "watch"]
+      - nonResourceURLs: ["/metrics"]
+        verbs: ["get"]
+
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 200m
+      memory: 400Mi
+
+  ports:
+    - name: otlp-grpc
+      port: 4317
+    - name: otlp-http
+      port: 4318
+    - name: metrics
+      port: 8888
+
+  # Environment variables injected into the collector pods.
+  # Override to add exporter credentials, resource attributes, etc.
+  env:
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+    - name: K8S_NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: K8S_NODE_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.hostIP
+    - name: OTEL_RESOURCE_ATTRIBUTES
+      value: "k8s.pod.ip=$(POD_IP)"
+
+  # Additional volumes and mounts for the collector pods.
+  volumes:
+    - name: varlogpods
+      hostPath:
+        path: /var/log/pods
+
+  volumeMounts:
+    - name: varlogpods
+      mountPath: /var/log/pods
+      readOnly: true
+
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      operator: Exists
+      effect: NoSchedule
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+  # Full OTEL collector pipeline configuration.
+  # Override exporters, connectors, and service.pipelines to integrate
+  # with your backend of choice (Datadog, Jaeger, Prometheus, etc.).
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      hostmetrics:
+        collection_interval: 10s
+        scrapers:
+          paging:
+            metrics:
+              system.paging.utilization:
+                enabled: true
+          cpu:
+            metrics:
+              system.cpu.utilization:
+                enabled: true
+          disk:
+          filesystem:
+            metrics:
+              system.filesystem.utilization:
+                enabled: true
+          load:
+          memory:
+          network:
+          processes:
+      kubeletstats:
+        collection_interval: 10s
+        auth_type: serviceAccount
+        endpoint: https://${env:K8S_NODE_IP}:10250
+        insecure_skip_verify: true
+        metric_groups:
+          - container
+          - pod
+      filelog:
+        include: [/var/log/pods/*/*/*.log]
+        exclude: [/var/log/pods/opentelemetry-operator-system/*.log]
+        start_at: end
+        include_file_path: true
+        include_file_name: false
+        poll_interval: 500ms
+        operators:
+          - type: container
+
+    processors:
+      batch:
+        send_batch_size: 1000
+        send_batch_max_size: 1000
+        timeout: 10s
+      k8sattributes:
+        auth_type: "serviceAccount"
+        passthrough: false
+        extract:
+          metadata:
+            - k8s.pod.name
+            - k8s.pod.uid
+            - k8s.deployment.name
+            - k8s.node.name
+            - k8s.namespace.name
+            - k8s.pod.start_time
+            - k8s.replicaset.name
+            - k8s.replicaset.uid
+            - k8s.daemonset.name
+            - k8s.daemonset.uid
+            - k8s.job.name
+            - k8s.job.uid
+            - k8s.cronjob.name
+            - k8s.statefulset.name
+            - k8s.statefulset.uid
+            - k8s.container.name
+            - container.image.name
+            - container.image.tag
+            - container.id
+          labels:
+            - tag_name: kube_app_name
+              key: app.kubernetes.io/name
+              from: pod
+            - tag_name: kube_app_instance
+              key: app.kubernetes.io/instance
+              from: pod
+            - tag_name: kube_app_version
+              key: app.kubernetes.io/version
+              from: pod
+            - tag_name: kube_app_component
+              key: app.kubernetes.io/component
+              from: pod
+            - tag_name: kube_app_part_of
+              key: app.kubernetes.io/part-of
+              from: pod
+            - tag_name: kube_app_managed_by
+              key: app.kubernetes.io/managed-by
+              from: pod
+        pod_association:
+          - sources:
+              - from: resource_attribute
+                name: k8s.pod.ip
+      resourcedetection:
+        detectors: [env, system]
+        override: false
+
+    exporters:
+      debug:
+        verbosity: basic
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [hostmetrics, kubeletstats, otlp]
+          processors: [k8sattributes, resourcedetection, batch]
+          exporters: [debug]
+        traces:
+          receivers: [otlp]
+          processors: [k8sattributes, resourcedetection, batch]
+          exporters: [debug]
+        logs:
+          receivers: [otlp, filelog]
+          processors: [k8sattributes, resourcedetection, batch]
+          exporters: [debug]
+
+  # Optional additive overrides merged into collector.config.
+  # Use these to customize exporters and service pipelines without
+  # replacing the full collector.config object.
+  override:
+    exporters: {}
+    service: {}

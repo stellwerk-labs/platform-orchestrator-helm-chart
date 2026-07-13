@@ -1,0 +1,37 @@
+OpenTelemetry Collector has been deployed.
+
+Configuration references:
+
+  Collector overview:
+    https://opentelemetry.io/docs/collector/
+
+  Collector configuration:
+    https://opentelemetry.io/docs/collector/configuration/
+
+  Receivers:
+    https://opentelemetry.io/docs/collector/configuration/#receivers
+    https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver
+
+  Processors:
+    https://opentelemetry.io/docs/collector/configuration/#processors
+    https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor
+
+  Exporters:
+    https://opentelemetry.io/docs/collector/configuration/#exporters
+    https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter
+
+  Connectors:
+    https://opentelemetry.io/docs/collector/configuration/#connectors
+    https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/connector
+
+  Service / Pipelines:
+    https://opentelemetry.io/docs/collector/configuration/#service
+
+  OpenTelemetry Operator (manages the collector CRD):
+    https://opentelemetry.io/docs/kubernetes/operator/
+
+  Deployment modes (daemonset, sidecar, deployment, statefulset):
+    https://opentelemetry.io/docs/collector/deployment/
+
+  Kubernetes-specific guidance:
+    https://opentelemetry.io/docs/kubernetes/

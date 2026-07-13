@@ -1,0 +1,9 @@
+apiVersion: v2
+name: console
+description: A Helm chart for deploying Platform Orchestrator Console
+
+type: application
+
+version: 0.1.0
+
+appVersion: "0.0.0"

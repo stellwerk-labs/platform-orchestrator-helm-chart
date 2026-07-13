@@ -1,0 +1,608 @@
+# =============================================================================
+# Platform Orchestrator Helm Chart - values.yaml
+# =============================================================================
+# This file contains the default configuration values for the Platform
+# Orchestrator chart. It deploys the following components:
+#   - Control Plane (backend-module subchart)
+#   - Data Plane (backend-module subchart)
+#   - IAM (backend-module subchart)
+#   - Console (frontend)
+#   - CNPG Databases (PostgreSQL via CloudNativePG)
+#   - RabbitMQ (message broker)
+#   - SeaweedFS (S3-compatible object storage)
+#   - SpiceDB (authorization)
+#   - Keycloak (identity provider)
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Control Plane
+# -----------------------------------------------------------------------------
+# The control plane manages organizations, projects, environments, modules,
+# and runners. It is deployed as a backend-module subchart.
+control-plane:
+  # -- Container image for the control plane
+  image:
+    # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
+    repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
+    # -- Image tag
+    tag: v1.0.1
+
+  # -- Configuration environment variables (injected via ConfigMap)
+  config:
+    # -- PostgreSQL database name for the control plane
+    DATABASE_NAME: "orchestrator-controlplane"
+    # -- PostgreSQL port
+    DATABASE_PORT: "5432"
+    # -- PostgreSQL host (should match the CNPG cluster service name)
+    DATABASE_HOST: platform-orchestrator-cnpg-databases
+    # -- Vault authentication string
+    # Format: "kubernetes:<service account name>:<audience1>,<audience2>"
+    VAULT_AUTH: "kubernetes:platform-orchestrator-control-plane:platform-orchestrator"
+    # -- Vault role for the control plane
+    VAULT_ROLE: "orchestrator-control-plane"
+    # -- OpenTelemetry collector endpoint
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-agent-collector.opentelemetry.svc.cluster.local:4317"
+
+  # -- Additional environment variables (injected directly into the pod spec)
+  # Typically used for secret references
+  env:
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: controlplane-db-secret
+          key: password
+    - name: DATABASE_USER
+      valueFrom:
+        secretKeyRef:
+          name: controlplane-db-secret
+          key: username
+    - name: AMQP_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-rabbitmq-platform-user-credentials
+          key: username
+    - name: AMQP_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-rabbitmq-platform-user-credentials
+          key: password
+
+  # -- Service account configuration
+  serviceAccount:
+    # -- Allow the service account to create tokens (needed for Vault auth)
+    allowCreateToken: true
+
+  # -- Gateway API HTTPRoute configuration for the control plane
+  gatewayApi:
+    route:
+      # -- Path matching rules for control plane API endpoints
+      matches:
+      - path:
+          type: RegularExpression
+          value: "/orgs($|/[^/]+/(projects|env-types|resource-types|module-providers|runners|runner-rules|modules|module-rules)($|/.*))"
+      # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
+      admin:
+        matches:
+        - path:
+            type: PathPrefix
+            value: "/admin/orgs"
+        rewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: "/internal/orgs"
+
+# -----------------------------------------------------------------------------
+# Data Plane
+# -----------------------------------------------------------------------------
+# The data plane handles deployments, active resources and logs.
+# It is deployed as a backend-module subchart.
+data-plane:
+  # -- Container image for the data plane
+  image:
+    # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
+    repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
+    # -- Image tag
+    tag: v1.0.1
+
+  # -- Service configuration
+  service:
+    # -- Create a headless service (required for internal data plane communication)
+    createHeadless: true
+
+  # -- Configuration environment variables (injected via ConfigMap)
+  config:
+    # -- Runner image used for deployments. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-runner:vX.Y.Z`
+    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v1.0.0
+    # -- Internal data plane hostname (headless service FQDN)
+    # Format: <headless svc name>.<namespace>.svc.cluster.local
+    INTERNAL_DATAPLANE_HOSTNAME: platform-orchestrator-data-plane.platform-orchestrator.svc.cluster.local
+    # -- Scheduling delay for runner pods
+    K8S_RUNNER_POD_SCHEDULING_DELAY: 30s
+    # -- OIDC issuer URL for the built-in OIDC provider (leave empty to disable)
+    OIDC_ISSUER_URL: ""
+    # -- S3 bucket name for runner deployment logs
+    RUNNER_LOGS_BUCKET: "deployment-runner-logs"
+    # -- S3-compatible endpoint for runner logs (SeaweedFS filer)
+    RUNNER_LOGS_BUCKET_ENDPOINT: "http://platform-orchestrator-seaweed-filer.platform-orchestrator.svc.cluster.local:8333"
+    # -- PostgreSQL database name for the data plane
+    DATABASE_NAME: "orchestrator-dataplane"
+    # -- PostgreSQL port
+    DATABASE_PORT: "5432"
+    # -- PostgreSQL host (should match the CNPG cluster service name)
+    DATABASE_HOST: platform-orchestrator-cnpg-databases
+    # -- Vault authentication string
+    # Format: "kubernetes:<service account name>:<audience1>,<audience2>"
+    VAULT_AUTH: "kubernetes:platform-orchestrator-data-plane:platform-orchestrator"
+    # -- Vault role for the data plane
+    VAULT_ROLE: "orchestrator-data-plane"
+    # -- OpenTelemetry collector endpoint
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-agent-collector.opentelemetry.svc.cluster.local:4317"
+
+  # -- Additional environment variables (injected directly into the pod spec)
+  # Typically used for secret references
+  env:
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: dataplane-db-secret
+          key: password
+    - name: DATABASE_USER
+      valueFrom:
+        secretKeyRef:
+          name: dataplane-db-secret
+          key: username
+    - name: AMQP_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-rabbitmq-platform-user-credentials
+          key: username
+    - name: AMQP_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-rabbitmq-platform-user-credentials
+          key: password
+    - name: RUNNER_TOKEN_SALT
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-secrets
+          key: runnerTokenSalt
+    - name: RUNNER_LOGS_BUCKET_CREDS
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-s3-admin-credentials
+          key: credentials_json
+
+  # -- Service account configuration
+  serviceAccount:
+    # -- Allow the service account to create tokens (needed for Vault auth)
+    allowCreateToken: true
+
+  # -- Gateway API HTTPRoute configuration for the data plane
+  gatewayApi:
+    route:
+      # -- Path matching rules for data plane API endpoints
+      matches:
+        - path:
+            type: RegularExpression
+            value: "/orgs/[^/]+/(deployments|last-deployments|active-resources|metadata-keys|remote-runners)($|/.*)"
+      # -- Request timeout for data plane routes
+      timeouts:
+        request: 45s
+
+  # -- Gateway API HTTPRoute for OIDC endpoints (built-in OIDC provider)
+  gatewayApiOidc:
+    route:
+      matches:
+        - path:
+            type: RegularExpression
+            value: "/(.well-known/openid-configuration|.well-known/jwks)"
+
+# -----------------------------------------------------------------------------
+# IAM (Identity & Access Management)
+# -----------------------------------------------------------------------------
+# The IAM service handles authentication, authorization, SSO, user management,
+# and role-based access control. It is deployed as a backend-module subchart.
+iam:
+  # -- Container image for IAM
+  image:
+    # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-iam`
+    repository: ghcr.io/stellwerk-labs/platform-orchestrator-iam
+    # -- Image tag
+    tag: v1.0.0
+
+  # -- Configuration environment variables (injected via ConfigMap)
+  config:
+    # -- Comma-separated Google OAuth client IDs for social login (leave empty to disable)
+    ALLOWED_GOOGLE_CLIENT_IDS: ""
+    # -- Comma-separated Microsoft OAuth client IDs for social login (leave empty to disable)
+    ALLOWED_MICROSOFT_CLIENT_IDS: ""
+    # -- SSO callback URL path
+    SSO_CALLBACK_URL_PATH: /auth/sso/callback
+    # -- Keycloak internal URL (in-cluster service URL)
+    KEYCLOAK_INTERNAL_URL: "http://platform-orchestrator-keycloak-service:8080"
+    # -- PostgreSQL database name for IAM
+    DATABASE_NAME: "orchestrator-iam"
+    # -- PostgreSQL port
+    DATABASE_PORT: "5432"
+    # -- PostgreSQL host (should match the CNPG cluster service name)
+    DATABASE_HOST: platform-orchestrator-cnpg-databases
+    # -- SpiceDB gRPC endpoint for authorization
+    SPICEDB_URL: "platform-orchestrator-spicedb:50051"
+    # -- OpenTelemetry collector endpoint
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-agent-collector.opentelemetry.svc.cluster.local:4317"
+
+  # -- Additional environment variables (injected directly into the pod spec)
+  # Typically used for secret references
+  env:
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: iam-db-secret
+          key: password
+    - name: DATABASE_USER
+      valueFrom:
+        secretKeyRef:
+          name: iam-db-secret
+          key: username
+    - name: AMQP_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-rabbitmq-platform-user-credentials
+          key: username
+    - name: AMQP_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-rabbitmq-platform-user-credentials
+          key: password
+    - name: SPICEDB_PRE_SHARED_KEY
+      valueFrom:
+        secretKeyRef:
+          name: spicedb-cluster-config
+          key: preshared_key
+    - name: KEYCLOAK_CLIENT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: keycloak-client-secret
+          key: clientSecret
+    - name: SSO_STATE_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-secrets
+          key: ssoStateSecret
+    - name: SUPER_USER_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: platform-orchestrator-secrets
+          key: superUserToken
+
+  # -- Gateway API HTTPRoute configuration for IAM
+  gatewayApi:
+    route:
+      # -- Path matching rules for IAM API endpoints (auth, users, roles, etc.)
+      matches:
+        - path:
+            type: RegularExpression
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/sso/.+|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+))"
+      # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
+      admin:
+        matches:
+          - path:
+              type: PathPrefix
+              value: "/admin/orgs"
+        rewrite:
+          path:
+            type: ReplacePrefixMatch
+            replacePrefixMatch: "/internal/orgs"
+
+# -----------------------------------------------------------------------------
+# Console (Frontend)
+# -----------------------------------------------------------------------------
+# The web-based UI for the Platform Orchestrator.
+console:
+  # -- Container image for the console
+  image:
+    # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend`
+    repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
+    # -- Image tag
+    tag: v1.0.1
+
+  # -- Configuration environment variables (injected via ConfigMap)
+  config:
+    # -- ConfigCat SDK key for feature flags (leave empty to disable)
+    CONFIG_CAT_SDK_KEY: ""
+    # -- Datadog client token for RUM monitoring (leave empty to disable)
+    DATADOG_CLIENT_TOKEN: ""
+    # -- Google OAuth client ID for social login button (leave empty to hide)
+    GOOGLE_CLIENT_ID: ""
+    # -- Microsoft OAuth client ID for social login button (leave empty to hide)
+    MICROSOFT_CLIENT_ID: ""
+    # -- Deployment mode identifier
+    DEPLOYMENT_MODE: "self-hosted"
+
+# -----------------------------------------------------------------------------
+# Subchart Toggles
+# -----------------------------------------------------------------------------
+# Each subchart can be disabled if you want to use an external service instead
+# (e.g., a managed PostgreSQL, an external RabbitMQ cluster, etc.).
+
+# -- CNPG PostgreSQL databases subchart
+cnpg-databases:
+  # -- Enable the in-cluster PostgreSQL database (disable to use external DB)
+  enabled: true
+
+# -- RabbitMQ subchart
+rabbitmq:
+  # -- Enable the in-cluster RabbitMQ broker (disable to use external AMQP)
+  enabled: true
+
+# -- SeaweedFS subchart (S3-compatible storage for runner logs)
+seaweed:
+  # -- Enable the in-cluster SeaweedFS (disable to use external S3)
+  enabled: true
+  image:
+    # -- SeaweedFS image tag
+    tag: "4.07"
+
+# -- SpiceDB subchart (authorization engine)
+spicedb:
+  # -- Enable the in-cluster SpiceDB
+  enabled: true
+
+# -- Keycloak subchart (identity provider)
+keycloak:
+  # -- Enable the in-cluster Keycloak
+  enabled: true
+
+# =============================================================================
+# Global Values
+# =============================================================================
+# Global values are shared across all subcharts. They control cross-cutting
+# concerns like networking, TLS, service discovery, and shared credentials.
+global:
+  # -- List of image pull secrets for private registries
+  # Example:
+  #   imagePullSecrets:
+  #     - name: my-registry-secret
+  imagePullSecrets: []
+
+  # ---------------------------------------------------------------------------
+  # TLS Certificates (cert-manager)
+  # ---------------------------------------------------------------------------
+  certificates:
+    # -- Enable automatic TLS certificate generation via cert-manager
+    enabled: true
+    # -- Create a ClusterIssuer resource (set to false if one already exists)
+    createIssuer: true
+    # -- Reference to the cert-manager issuer to use for certificates
+    issuerRef:
+      name: platform-orchestrator-issuer
+      kind: ClusterIssuer
+    # -- Issuer configuration (only used when createIssuer is true)
+    issuer:
+      # -- Issuer type: "selfSigned", "ca", or "acme"
+      type: selfSigned
+      # -- CA issuer configuration (used when type is "ca")
+      # Requires a pre-existing secret with tls.crt and tls.key
+      ca:
+        # -- Name of the secret containing the CA certificate key pair
+        secretName: ca-key-pair
+      # -- ACME issuer configuration (used when type is "acme")
+      acme:
+        # -- ACME server URL
+        server: https://acme-v02.api.letsencrypt.org/directory
+        # -- Email address for ACME registration
+        email: ""
+        # -- Name of the secret to store the ACME account private key
+        privateKeySecretRef: letsencrypt-account-key
+        # -- ACME challenge solvers configuration
+        # Example HTTP-01 solver:
+        #   - http01:
+        #       ingress:
+        #         class: envoy-gateway
+        solvers: []
+
+  # ---------------------------------------------------------------------------
+  # S3 Storage Credentials
+  # ---------------------------------------------------------------------------
+  s3:
+    adminAuth:
+      # -- Name of the secret containing S3 admin credentials
+      secretName: platform-orchestrator-s3-admin-credentials
+      # -- S3 admin access key ID (set if creating the secret via Helm)
+      # accessKeyId: YOUR_ADMIN_ACCESS_KEY
+      # -- S3 admin secret access key (set if creating the secret via Helm)
+      # secretAccessKey: YOUR_ADMIN_SECRET_KEY
+
+  # ---------------------------------------------------------------------------
+  # Internal Service URLs
+  # ---------------------------------------------------------------------------
+  # These are used for inter-service communication within the cluster.
+  config:
+    # -- Internal URL of the data plane service
+    DATA_PLANE_URL: http://platform-orchestrator-data-plane:8080
+    # -- Internal URL of the control plane service
+    CONTROL_PLANE_URL: http://platform-orchestrator-control-plane:8080
+    # -- Internal URL of the IAM service
+    IAM_URL: http://platform-orchestrator-iam:8080
+    # -- Vault URL for secret management
+    VAULT_URL: http://openbao.openbao:8200
+    # -- RabbitMQ host
+    AMQP_HOST: platform-orchestrator-rabbitmq
+    # -- RabbitMQ port
+    AMQP_PORT: "5672"
+    # -- RabbitMQ virtual host
+    AMQP_VHOST: platform
+
+  # -- Enable the admin API (generates a superUserToken in the secrets)
+  enableAdminApi: true
+
+  # ---------------------------------------------------------------------------
+  # Gateway API Configuration
+  # ---------------------------------------------------------------------------
+  # Configures Kubernetes Gateway API resources (Gateways, HTTPRoutes,
+  # SecurityPolicies) for external access to the Platform Orchestrator.
+  gatewayApi:
+    # -- Enable Gateway API resource creation
+    enabled: true
+    # -- GatewayClass name to use
+    className: envoy-gateway
+    # -- Enable Envoy Gateway-specific resources (SecurityPolicy for ext auth, CORS)
+    useEnvoyGateway: true
+
+    # -- Backend (API) gateway configuration
+    backend:
+      # -- Hostname for the API gateway
+      hostname: "api.platform-orchestrator.local"
+      # -- Enable HTTP listener (port 80)
+      http: true
+      # -- Enable HTTPS listener (port 443)
+      https: true
+      # -- TLS configuration for the HTTPS listener
+      tls:
+        # -- Certificate references for TLS termination
+        certificateRefs:
+          - name: api-platform-orchestrator-cert
+            kind: Secret
+      # -- External authentication configuration (Envoy Gateway only)
+      extAuth:
+        # -- Service name for ext auth (IAM service)
+        service: platform-orchestrator-iam
+        # -- Service port for ext auth
+        port: 8080
+      # -- CORS configuration for the backend gateway
+      cors:
+        # -- Allowed origins (supports wildcards)
+        allowOrigins:
+          - "https://*.platform-orchestrator.local"
+        # -- Allowed HTTP methods
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        # -- Allowed request headers
+        allowHeaders:
+          - DNT
+          - Keep-Alive
+          - User-Agent
+          - X-Requested-With
+          - If-Modified-Since
+          - Cache-Control
+          - Content-Type
+          - Range
+          - Authorization
+          - Platform-Orchestrator-User-Agent
+          - Idempotency-Key
+          - If-Match
+        # -- Headers exposed to the browser
+        exposeHeaders:
+          - Etag
+          - Link
+        # -- Allow credentials (cookies, authorization headers)
+        allowCredentials: true
+        # -- CORS preflight cache duration
+        maxAge: 24h
+
+    # -- Frontend (Console) gateway configuration
+    frontend:
+      # -- Hostname for the console gateway
+      hostname: "console.platform-orchestrator.local"
+      # -- Enable HTTP listener (port 80)
+      http: true
+      # -- Enable HTTPS listener (port 443)
+      https: true
+      # -- TLS configuration for the HTTPS listener
+      tls:
+        # -- Certificate references for TLS termination
+        certificateRefs:
+          - name: console-platform-orchestrator-cert
+            kind: Secret
+      # -- CORS configuration for the frontend gateway
+      cors:
+        allowOrigins:
+          - "https://*.platform-orchestrator.local"
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        allowCredentials: true
+        maxAge: 24h
+
+    # -- OIDC provider gateway configuration (optional)
+    # If specified, exposes the built-in OIDC provider on a dedicated hostname.
+    # Set data-plane.config.OIDC_ISSUER_URL to the public URL of this gateway.
+    oidc: {}
+    #  hostname: "oidc.platform-orchestrator.local"
+    #  http: true
+    #  https: true
+    #  tls:
+    #    certificateRefs:
+    #      - name: wildcard-cert
+    #        kind: Secret
+
+    # -- Keycloak gateway configuration
+    keycloak:
+      # -- Hostname for the Keycloak gateway
+      hostname: "keycloak.platform-orchestrator.local"
+      # -- Enable HTTP listener (port 80)
+      http: true
+      # -- Enable HTTPS listener (port 443)
+      https: true
+      # -- TLS configuration for the HTTPS listener
+      tls:
+        # -- Certificate references for TLS termination
+        certificateRefs:
+          - name: keycloak-platform-orchestrator-cert
+            kind: Secret
+
+  # ---------------------------------------------------------------------------
+  # SpiceDB Configuration
+  # ---------------------------------------------------------------------------
+  spicedb:
+    database:
+      # -- PostgreSQL host for SpiceDB
+      host: platform-orchestrator-cnpg-databases
+      # -- PostgreSQL port for SpiceDB
+      port: "5432"
+      # -- Database name for SpiceDB
+      name: orchestrator-spicedb
+      # -- Database owner/user for SpiceDB
+      owner: spicedb_user
+      # -- Secret name containing the SpiceDB database password
+      passwordSecretName: spicedb-db-secret
+      # -- Key within the secret containing the password
+      passwordSecretKey: password
+
+  # ---------------------------------------------------------------------------
+  # Keycloak Configuration
+  # ---------------------------------------------------------------------------
+  keycloak:
+    # -- Keycloak realm configuration
+    realm:
+      # -- Realm name
+      name: platform-orchestrator
+      # -- Realm display name shown in the UI
+      displayName: "Platform Orchestrator"
+      # -- OIDC client ID for the Platform Orchestrator
+      clientId: platform-orchestrator
+      # -- Secret name containing the OIDC client secret
+      clientSecretName: keycloak-client-secret
+    # -- Keycloak database configuration
+    database:
+      # -- PostgreSQL host for Keycloak
+      host: platform-orchestrator-cnpg-databases
+      # -- PostgreSQL port for Keycloak
+      port: "5432"
+      # -- Database name for Keycloak
+      name: orchestrator-keycloak
+      # -- Database owner/user for Keycloak
+      owner: keycloak_user
+      # -- Secret name containing the Keycloak database password
+      passwordSecretName: keycloak-db-secret
+      # -- Key within the secret containing the password
+      passwordSecretKey: password

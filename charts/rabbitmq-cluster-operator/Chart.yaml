@@ -1,0 +1,5 @@
+apiVersion: v2
+name: rabbitmq-cluster-operator
+description: RabbitMQ Cluster Operator
+version: 0.1.0
+appVersion: "2.19.0"

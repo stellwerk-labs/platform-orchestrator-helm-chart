@@ -1,0 +1,32 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: {{ include "keycloak.fullname" . }}-realm
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+spec:
+  keycloakCRName: {{ include "keycloak.fullname" . }}
+  {{- if .Values.resources }}
+  resources:
+    {{- toYaml .Values.resources | nindent 4 }}
+  {{- end }}
+  placeholders:
+    KC_CLIENT_SECRET:
+      secret:
+        name: {{ .Values.global.keycloak.realm.clientSecretName }}
+        key: clientSecret
+  realm:
+    id: {{ .Values.global.keycloak.realm.name }}
+    realm: {{ .Values.global.keycloak.realm.name }}
+    displayName: {{ .Values.global.keycloak.realm.displayName | quote }}
+    enabled: true
+    clients:
+      - clientId: {{ .Values.global.keycloak.realm.clientId }}
+        secret: ${KC_CLIENT_SECRET}
+        publicClient: false
+        clientAuthenticatorType: client-secret
+        standardFlowEnabled: true
+        serviceAccountsEnabled: true
+        redirectUris:
+          - "http{{ if $.Values.global.gatewayApi.frontend.https }}s{{ end }}://{{ $.Values.global.gatewayApi.frontend.hostname }}/*"
+          - "http{{ if $.Values.global.gatewayApi.backend.https }}s{{ end }}://{{ $.Values.global.gatewayApi.backend.hostname }}/*"

@@ -1,0 +1,18 @@
+{{- if .Values.service.createHeadless -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "backend-module.fullname" . }}
+  labels:
+    {{- include "backend-module.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    {{- include "backend-module.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ default .Values.service.port .Values.service.targetPort }}
+      protocol: TCP
+{{- end }}

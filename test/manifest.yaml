@@ -1,0 +1,7 @@
+workloads:
+  test-workload:
+    resources:
+      test-resource:
+        type: test-type
+    outputs:
+      test_value: ${resources.test-resource.outputs.test_value}

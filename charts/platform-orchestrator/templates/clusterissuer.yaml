@@ -1,0 +1,24 @@
+{{- if .Values.global.certificates.createIssuer }}
+{{- $issuer := .Values.global.certificates.issuer }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.global.certificates.issuerRef.name }}
+  labels:
+    {{- include "platform-orchestrator.labels" . | nindent 4 }}
+spec:
+  {{- if eq $issuer.type "selfSigned" }}
+  selfSigned: {}
+  {{- else if eq $issuer.type "ca" }}
+  ca:
+    secretName: {{ $issuer.ca.secretName }}
+  {{- else if eq $issuer.type "acme" }}
+  acme:
+    server: {{ $issuer.acme.server | default "https://acme-v02.api.letsencrypt.org/directory" }}
+    email: {{ $issuer.acme.email }}
+    privateKeySecretRef:
+      name: {{ $issuer.acme.privateKeySecretRef | default "letsencrypt-account-key" }}
+    solvers:
+      {{- toYaml $issuer.acme.solvers | nindent 6 }}
+  {{- end }}
+{{- end }}

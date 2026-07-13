@@ -1,0 +1,27 @@
+*.tgz
+*.lock
+test-credentials.json
+kubeconfig.yaml
+openbao-keys.json
+.claude/settings.local.json
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.tfvars
+*.tfvars.json
+
+# Terraform / OpenTofu
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

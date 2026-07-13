@@ -1,0 +1,18 @@
+{{- if .Values.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cnpg-databases.fullname" . }}
+  labels:
+    {{- include "cnpg-databases.labels" . | nindent 4 }}
+spec:
+  selector:
+    cnpg.io/cluster: {{ include "cnpg-databases.fullname" . }}
+    cnpg.io/instanceRole: primary
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+  type: ClusterIP
+{{- end }}

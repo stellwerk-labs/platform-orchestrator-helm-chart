@@ -1,0 +1,188 @@
+{{- if .Values.global.gatewayApi.enabled }}
+{{- with .Values.global.gatewayApi.backend }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "platform-orchestrator.fullname" $ }}-backend-gateway
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  gatewayClassName: {{ $.Values.global.gatewayApi.className }}
+  listeners:
+  {{- if .http }}
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: {{ .hostname | quote }}
+  {{- end }}
+  {{- if .https }}
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .hostname | quote }}
+      {{- if .tls }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+        {{- range .tls.certificateRefs }}
+          - name: {{ .name }}
+            kind: {{ .kind | default "Secret" }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+
+{{- if $.Values.global.gatewayApi.useEnvoyGateway }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ include "platform-orchestrator.fullname" $ }}-backend-gateway
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: {{ include "platform-orchestrator.fullname" $ }}-backend-gateway
+  {{- if .extAuth }}
+  extAuth:
+    headersToExtAuth: ["Cookie"]
+    http:
+      backendRefs:
+        - name: {{ .extAuth.service }}
+          namespace: {{ $.Release.Namespace }}
+          port: {{ .extAuth.port }}
+      path: /internal/authenticate
+      headersToBackend: ["From", "X-Token-Hash"]
+  {{- end }}
+  {{- if .cors }}
+  cors:
+    {{- toYaml .cors | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.global.gatewayApi.frontend }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "platform-orchestrator.fullname" $ }}-frontend-gateway
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  gatewayClassName: {{ $.Values.global.gatewayApi.className }}
+  listeners:
+  {{- if .http }}
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: {{ .hostname | quote }}
+  {{- end }}
+  {{- if .https }}
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .hostname | quote }}
+      {{- if .tls }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+        {{- range .tls.certificateRefs }}
+          - name: {{ .name }}
+            kind: {{ .kind | default "Secret" }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+
+{{- if $.Values.global.gatewayApi.useEnvoyGateway }}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ include "platform-orchestrator.fullname" $ }}-frontend-gateway
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: {{ include "platform-orchestrator.fullname" $ }}-frontend-gateway
+  {{- if .cors }}
+  cors:
+    {{- toYaml .cors | nindent 4 }}
+  {{- end }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.global.gatewayApi.oidc }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "platform-orchestrator.fullname" $ }}-oidc-gateway
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  gatewayClassName: {{ $.Values.global.gatewayApi.className }}
+  listeners:
+  {{- if .http }}
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: {{ .hostname | quote }}
+  {{- end }}
+  {{- if .https }}
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .hostname | quote }}
+      {{- if .tls }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+        {{- range .tls.certificateRefs }}
+          - name: {{ .name }}
+            kind: {{ .kind | default "Secret" }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- with .Values.global.gatewayApi.keycloak }}
+{{- if .hostname }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "platform-orchestrator.fullname" $ }}-keycloak-gateway
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  gatewayClassName: {{ $.Values.global.gatewayApi.className }}
+  listeners:
+  {{- if .http }}
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: {{ .hostname | quote }}
+  {{- end }}
+  {{- if .https }}
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .hostname | quote }}
+      {{- if .tls }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+        {{- range .tls.certificateRefs }}
+          - name: {{ .name }}
+            kind: {{ .kind | default "Secret" }}
+        {{- end }}
+      {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

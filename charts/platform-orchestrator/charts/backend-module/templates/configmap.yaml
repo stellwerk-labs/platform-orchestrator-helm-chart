@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "backend-module.fullname" . }}-config
+  labels:
+    {{- include "backend-module.labels" . | nindent 4 }}
+data:
+  PORT: "{{ .Values.service.port }}"
+  SERVER_BASE_URL: http{{ if .Values.global.gatewayApi.backend.https }}s{{ end }}://{{ .Values.global.gatewayApi.backend.hostname }}
+  SESSION_TOKEN_COOKIE_DOMAIN: {{ .Values.global.gatewayApi.backend.hostname }}
+  UI_HOST_URL: http{{ if .Values.global.gatewayApi.frontend.https }}s{{ end }}://{{ .Values.global.gatewayApi.frontend.hostname }}
+  {{- if .Values.otel.enabled }}
+  OTEL_ENABLE: "true"
+  OTEL_RESOURCE_ATTRIBUTES: "{{ .Values.otel.env }}"
+  OTEL_SERVICE_NAME: "deployment.environment={{ include "backend-module.fullname" . }}"
+  {{- else }}
+  OTEL_ENABLE: "false"
+  {{- end }}
+  {{- if .Values.global.keycloak }}
+  {{- with .Values.global.keycloak.realm }}
+  KEYCLOAK_URL: http{{ if $.Values.global.gatewayApi.keycloak.https }}s{{ end }}://{{ $.Values.global.gatewayApi.keycloak.hostname }}
+  KEYCLOAK_REALM: {{ .name }}
+  KEYCLOAK_CLIENT_ID: {{ .clientId }}
+  {{- end }}
+  {{- end }}
+  {{- with .Values.config }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- with .Values.global.config }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}

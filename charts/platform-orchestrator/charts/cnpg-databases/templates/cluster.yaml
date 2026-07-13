@@ -1,0 +1,61 @@
+{{- if .Values.enabled }}
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ include "cnpg-databases.fullname" . }}
+  labels:
+    {{- include "cnpg-databases.labels" . | nindent 4 }}
+spec:
+  instances: {{ .Values.cluster.instances }}
+
+  bootstrap:
+    initdb:
+      database: postgres
+      owner: {{ .Values.admin.username }}
+      secret:
+        name: {{ .Values.admin.passwordSecretName }}
+
+  storage:
+    size: {{ .Values.cluster.storageSize }}
+    storageClass: {{ .Values.cluster.storageClass }}
+
+  managed:
+    roles:
+      {{- range .Values.databases }}
+      - name: {{ .owner }}
+        ensure: present
+        comment: "User for {{ .name }} database"
+        login: true
+        createdb: false
+        superuser: false
+        passwordSecret:
+          name: {{ .passwordSecretName }}
+      {{- end }}
+      {{- with .Values.global.spicedb.database }}
+      - name: {{ .owner }}
+        ensure: present
+        comment: "User for {{ .name }} database"
+        login: true
+        createdb: false
+        superuser: false
+        passwordSecret:
+          name: {{ .passwordSecretName }}
+      {{- end }}
+      {{- with .Values.global.keycloak.database }}
+      - name: {{ .owner }}
+        ensure: present
+        comment: "User for {{ .name }} database"
+        login: true
+        createdb: false
+        superuser: false
+        passwordSecret:
+          name: {{ .passwordSecretName }}
+      {{- end }}
+
+  postgresql:
+    parameters:
+      shared_buffers: {{ .Values.postgresql.sharedBuffers | quote }}
+      max_connections: {{ .Values.postgresql.maxConnections | quote }}
+      log_statement: {{ .Values.postgresql.logStatement | quote }}
+
+  {{- end }}

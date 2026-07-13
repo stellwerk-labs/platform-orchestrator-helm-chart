@@ -1,0 +1,10 @@
+apiVersion: v2
+name: opentelemetry
+description: OpenTelemetry collector and instrumentation for Platform Orchestrator
+
+
+type: application
+
+version: 0.1.0
+
+appVersion: "0.0.0"

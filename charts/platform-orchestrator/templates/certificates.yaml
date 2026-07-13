@@ -1,0 +1,75 @@
+{{- if .Values.global.gatewayApi.enabled }}
+{{- if .Values.global.certificates.enabled }}
+{{- with .Values.global.gatewayApi.backend }}
+{{- if and .https .tls }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ (index .tls.certificateRefs 0).name }}
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ (index .tls.certificateRefs 0).name }}
+  dnsNames:
+    - {{ .hostname | quote }}
+  issuerRef:
+    {{- toYaml $.Values.global.certificates.issuerRef | nindent 4 }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.global.gatewayApi.frontend }}
+{{- if and .https .tls }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ (index .tls.certificateRefs 0).name }}
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ (index .tls.certificateRefs 0).name }}
+  dnsNames:
+    - {{ .hostname | quote }}
+  issuerRef:
+    {{- toYaml $.Values.global.certificates.issuerRef | nindent 4 }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.global.gatewayApi.oidc }}
+{{- if and .https .tls }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ (index .tls.certificateRefs 0).name }}
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ (index .tls.certificateRefs 0).name }}
+  dnsNames:
+    - {{ .hostname | quote }}
+  issuerRef:
+    {{- toYaml $.Values.global.certificates.issuerRef | nindent 4 }}
+{{- end }}
+{{- end }}
+
+{{- with .Values.global.gatewayApi.keycloak }}
+{{- if and .https .tls }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ (index .tls.certificateRefs 0).name }}
+  labels:
+    {{- include "platform-orchestrator.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ (index .tls.certificateRefs 0).name }}
+  dnsNames:
+    - {{ .hostname | quote }}
+  issuerRef:
+    {{- toYaml $.Values.global.certificates.issuerRef | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
