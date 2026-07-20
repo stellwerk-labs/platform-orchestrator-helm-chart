@@ -63,6 +63,17 @@ component image repositories and configure `global.imagePullSecrets`.
 make deploy
 ```
 
+## Releasing the OCI chart
+
+Chart publication is deliberately manual. Updating a component image does not
+publish a chart by itself. When a coherent set of image tags is ready, update
+the default image tags in `charts/platform-orchestrator/values.yaml`, increment
+the chart version in `charts/platform-orchestrator/Chart.yaml`, and commit the
+change. Create and push a signed `v<chart-version>` tag on that commit, then run
+the **Release Chart** workflow from that tag. The workflow validates the tag and
+chart version, lints and packages the chart, pushes it to
+`oci://ghcr.io/stellwerk-labs/charts`, and creates the matching GitHub release.
+
 ## Organization and user management
 
 ### Create organizations with admin API
