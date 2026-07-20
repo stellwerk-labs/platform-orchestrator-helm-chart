@@ -25,7 +25,7 @@ control-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v1.0.1
+    tag: v1.0.2
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -102,7 +102,7 @@ data-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v1.0.1
+    tag: v1.0.2
 
   # -- Service configuration
   service:
@@ -112,7 +112,7 @@ data-plane:
   # -- Configuration environment variables (injected via ConfigMap)
   config:
     # -- Runner image used for deployments. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-runner:vX.Y.Z`
-    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v1.0.0
+    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v1.0.3
     # -- Internal data plane hostname (headless service FQDN)
     # Format: <headless svc name>.<namespace>.svc.cluster.local
     INTERNAL_DATAPLANE_HOSTNAME: platform-orchestrator-data-plane.platform-orchestrator.svc.cluster.local
@@ -208,7 +208,7 @@ iam:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-iam`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-iam
     # -- Image tag
-    tag: v1.0.0
+    tag: v1.0.1
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -304,7 +304,7 @@ console:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
     # -- Image tag
-    tag: v1.0.1
+    tag: v1.0.2
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
