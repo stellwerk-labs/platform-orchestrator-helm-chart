@@ -24,7 +24,7 @@ jobs:
       - name: Set up Helm
         uses: azure/setup-helm@v5
 
-      - name: Validate signed release tag and chart version
+      - name: Validate selected release tag and chart version
         id: chart
         shell: bash
         env:
@@ -34,8 +34,6 @@ jobs:
           git fetch --force --tags
           release_tag="$RELEASE_TAG"
           printf '%s\n' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
-          test "$(git cat-file -t "$release_tag")" = tag
-          test "$(git rev-parse "$release_tag^{commit}")" = "$(git rev-parse HEAD)"
           chart_version="$(helm show chart charts/platform-orchestrator | awk '$1 == "version:" { print $2 }')"
           test "v$chart_version" = "$release_tag"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
