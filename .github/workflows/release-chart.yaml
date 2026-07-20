@@ -33,7 +33,8 @@ jobs:
           set -euo pipefail
           release_tag="$RELEASE_TAG"
           printf '%s\n' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
-          chart_version="$(helm show chart charts/platform-orchestrator | awk '$1 == "version:" { print $2 }')"
+          chart_version="$(awk '$1 == "version:" { print $2; exit }' charts/platform-orchestrator/Chart.yaml)"
+          printf 'Selected tag: <%s>; chart version: <%s>\n' "$release_tag" "$chart_version"
           test "v$chart_version" = "$release_tag"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           echo "chart_version=$chart_version" >> "$GITHUB_OUTPUT"
