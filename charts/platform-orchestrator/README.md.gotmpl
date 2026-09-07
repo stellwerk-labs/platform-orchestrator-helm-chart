@@ -53,9 +53,13 @@ rotation, and revocation process. Runners receive only HTTPS credentials.
 
 Set `data-plane.config.RUNNER_GATEWAY_URL` to the public HTTPS URL that ECS and
 other runners outside the cluster can reach. Keep
-`RUNNER_GATEWAY_INTERNAL_URL` on the cluster-local gateway Service for
-Kubernetes Jobs created inside this cluster. When the API hostname changes,
-update the public runner gateway URL with it.
+`RUNNER_GATEWAY_INTERNAL_URL` on the namespace-qualified gateway Service for
+Kubernetes Jobs created inside this cluster. A short Service name resolves in
+the Job's namespace, which need not be the Orchestrator namespace. The default
+assumes release and namespace `platform-orchestrator`; override it with
+`http://<gateway-service>.<orchestrator-namespace>.svc:8080/runner-gateway` for
+another installation. When the API hostname changes, update the public runner
+gateway URL with it.
 
 {{ template "chart.valuesSection" . }}
 

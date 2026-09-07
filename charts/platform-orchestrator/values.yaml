@@ -134,8 +134,8 @@ data-plane:
     # -- Public HTTPS gateway used by runner Jobs outside this Kubernetes cluster.
     # Keep the hostname aligned with global.gatewayApi.backend.hostname.
     RUNNER_GATEWAY_URL: "https://api.platform-orchestrator.local/runner-gateway"
-    # -- Cluster-local gateway used by Kubernetes runner Jobs created in this cluster.
-    RUNNER_GATEWAY_INTERNAL_URL: "http://platform-orchestrator-runner-gateway:8080/runner-gateway"
+    # -- Namespace-qualified gateway for Kubernetes runner Jobs in any namespace of this cluster. Override for a different release name or Orchestrator namespace.
+    RUNNER_GATEWAY_INTERNAL_URL: "http://platform-orchestrator-runner-gateway.platform-orchestrator.svc:8080/runner-gateway"
 
   # -- Additional environment variables (injected directly into the pod spec)
   # Typically used for secret references
