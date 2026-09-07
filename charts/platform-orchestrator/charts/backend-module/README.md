@@ -35,5 +35,6 @@ A Helm chart for deploying Platform Orchestrator backend module
 | serviceAccount.annotations | object | `{}` | Annotations to add to the service account |
 | serviceAccount.create | bool | `true` | Create a dedicated service account |
 | serviceAccount.name | string | `""` | Override the service account name (defaults to fullname) |
+| startupProbe | object | `{"failureThreshold":60,"httpGet":{"path":"/alive","port":8080,"scheme":"HTTP"},"periodSeconds":5}` | Startup probe delaying liveness checks until dependencies and database migrations are ready. Adjust the budget for large upgrades; set to null to disable. |
 | strategy | object | `{}` | Deployment update strategy |
 | tolerations | list | `[]` | Pod tolerations |

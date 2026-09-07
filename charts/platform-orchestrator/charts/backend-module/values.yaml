@@ -65,6 +65,15 @@ resources: {}
   #   cpu: 100m
   #   memory: 128Mi
 
+# -- Startup probe delaying liveness checks until dependencies and database migrations are ready. Adjust the budget for large upgrades; set to null to disable.
+startupProbe:
+  httpGet:
+    path: /alive
+    port: 8080
+    scheme: HTTP
+  failureThreshold: 60
+  periodSeconds: 5
+
 # -- Pod affinity rules
 affinity: {}
 # -- Node selector constraints

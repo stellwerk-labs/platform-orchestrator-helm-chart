@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Signed chart tag to publish (for example v0.1.5)
+        description: Signed stable or candidate chart tag (vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-rc.N)
         required: true
         type: string
 
@@ -45,13 +45,9 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          release_tag="$RELEASE_TAG"
-          printf '%s\n' "$release_tag" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'
           chart_version="$(awk '$1 == "version:" { print $2; exit }' charts/platform-orchestrator/Chart.yaml)"
-          printf 'Selected tag: <%s>; chart version: <%s>\n' "$release_tag" "$chart_version"
-          test "v$chart_version" = "$release_tag"
-          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
-          echo "chart_version=$chart_version" >> "$GITHUB_OUTPUT"
+          bash scripts/chart-release-version.sh "$RELEASE_TAG" "$chart_version" >> "$GITHUB_OUTPUT"
+          test -f "docs/releases/$RELEASE_TAG.md"
 
       - name: Lint and package chart
         run: |
@@ -71,15 +67,23 @@ jobs:
       - name: Publish OCI chart and GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.chart.outputs.release_tag }}
+          CHART_VERSION: ${{ steps.chart.outputs.chart_version }}
+          PRERELEASE: ${{ steps.chart.outputs.prerelease }}
         run: |
           set -euo pipefail
-          chart="dist/platform-orchestrator-${{ steps.chart.outputs.chart_version }}.tgz"
-          helm push "$chart" oci://ghcr.io/stellwerk-labs/charts
-          notes="docs/releases/${{ steps.chart.outputs.release_tag }}.md"
+          chart="dist/platform-orchestrator-${CHART_VERSION}.tgz"
+          notes="docs/releases/$RELEASE_TAG.md"
           test -f "$notes"
-          gh release create "${{ steps.chart.outputs.release_tag }}" "$chart" \
+          release_flags=()
+          if [[ "$PRERELEASE" == true ]]; then
+            release_flags+=(--prerelease --latest=false)
+          fi
+          helm push "$chart" oci://ghcr.io/stellwerk-labs/charts
+          gh release create "$RELEASE_TAG" "$chart" \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
+            "${release_flags[@]}" \
             --notes-file "$notes"
 
       - name: Verify published chart
