@@ -5,6 +5,9 @@ chart=${1:-charts/platform-orchestrator}
 rendered=$(mktemp)
 trap 'rm -f "$rendered"' EXIT
 
+helm template platform-orchestrator "$chart" --namespace platform-orchestrator >"$rendered"
+grep -q 'RUNNER_GATEWAY_INTERNAL_URL: http://platform-orchestrator-runner-gateway.platform-orchestrator.svc:8080/runner-gateway' "$rendered"
+
 helm template platform-orchestrator "$chart" \
   --set-string global.config.NATS_URL=nats://contract-nats:4222 \
   --set-string data-plane.config.RUNNER_GATEWAY_URL=https://public.example.test/runner-gateway \

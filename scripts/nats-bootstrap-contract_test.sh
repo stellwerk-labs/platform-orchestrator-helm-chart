@@ -10,7 +10,7 @@ helm template platform-orchestrator "$chart" >"$rendered"
 # The application token may connect and perform JetStream administration, but
 # it deliberately has no system-account access. RTT verifies an authenticated
 # protocol connection without requiring $SYS request permissions.
-grep -q 'until nats \$auth rtt 1; do sleep 2; done' "$rendered"
+grep -q 'until nats [$]auth rtt 1; do sleep 2; done' "$rendered"
 
 if grep -q 'server ping' "$rendered"; then
   echo "NATS bootstrap must not require system-account server ping access" >&2

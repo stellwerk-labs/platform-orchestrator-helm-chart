@@ -58,5 +58,17 @@ jobs:
       - name: Test IAM SCIM route contract
         run: bash scripts/scim-route-contract_test.sh
 
+      - name: Test Core API route ownership
+        run: bash scripts/core-api-route-contract_test.sh
+
+      - name: Test backend startup budget
+        run: bash scripts/backend-startup-contract_test.sh
+
+      - name: Test chart release version validation
+        run: bash scripts/chart-release-version_test.sh
+
+      - name: Test immutable chart publication contract
+        run: python3 scripts/chart-release-preflight_test.py
+
       - name: Test NATS bootstrap contract
         run: bash scripts/nats-bootstrap-contract_test.sh
