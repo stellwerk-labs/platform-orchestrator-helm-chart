@@ -42,6 +42,16 @@ issuer keys and signed documents, never the signing key. Expiry and revocation
 stop new work while preserving previously activated read and recovery access
 under the existing permissions.
 
+Plugin pages also require an operator-reviewed Console CSP allowance. Set
+`console.gatewayApi.route.pluginUiOrigins` to the exact HTTPS origins declared
+by the installed plugins, for example `["https://addons.example.com"]`.
+The default empty list preserves the stock policy. Entries use separate DNS
+hostnames and optional non-default ports; wildcards, credentials, paths, query
+strings, fragments, duplicate origins and the Console hostname are rejected.
+This grants framing only, without adding script or network permissions. Each
+plugin runtime must independently restrict `frame-ancestors` to the Console
+origin, and the host still validates every bridge message and operation.
+
 ## Prerequisites
 
 - Kubernetes 1.27+

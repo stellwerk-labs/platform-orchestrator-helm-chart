@@ -61,6 +61,9 @@ jobs:
       - name: Test Core API route ownership
         run: bash scripts/core-api-route-contract_test.sh
 
+      - name: Test Console plugin UI Content Security Policy
+        run: python3 scripts/console-plugin-ui-csp-contract_test.py
+
       - name: Test native plugin Secret file mounts
         run: bash scripts/native-plugin-secret-files-contract_test.sh
 

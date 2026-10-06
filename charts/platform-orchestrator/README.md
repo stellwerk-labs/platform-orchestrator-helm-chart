@@ -42,6 +42,16 @@ issuer keys and signed documents, never the signing key. Expiry and revocation
 stop new work while preserving previously activated read and recovery access
 under the existing permissions.
 
+Plugin pages also require an operator-reviewed Console CSP allowance. Set
+`console.gatewayApi.route.pluginUiOrigins` to the exact HTTPS origins declared
+by the installed plugins, for example `["https://addons.example.com"]`.
+The default empty list preserves the stock policy. Entries use separate DNS
+hostnames and optional non-default ports; wildcards, credentials, paths, query
+strings, fragments, duplicate origins and the Console hostname are rejected.
+This grants framing only, without adding script or network permissions. Each
+plugin runtime must independently restrict `frame-ancestors` to the Console
+origin, and the host still validates every bridge message and operation.
+
 ## Prerequisites
 
 - Kubernetes 1.27+
@@ -109,7 +119,8 @@ gateway URL with it.
 | console.config.GOOGLE_CLIENT_ID | string | `""` | Google OAuth client ID for social login button (leave empty to hide) |
 | console.config.MICROSOFT_CLIENT_ID | string | `""` | Microsoft OAuth client ID for social login button (leave empty to hide) |
 | console.envFromSecrets | list | `[]` | Names of secrets to load as environment variables via envFrom |
-| console.gatewayApi | object | `{"route":{"matches":[{"path":{"type":"PathPrefix","value":"/"}}]}}` | Gateway API HTTPRoute configuration (created when global Gateway API is enabled) |
+| console.gatewayApi | object | `{"route":{"matches":[{"path":{"type":"PathPrefix","value":"/"}}],"pluginUiOrigins":[]}}` | Gateway API HTTPRoute configuration (created when global Gateway API is enabled) |
+| console.gatewayApi.route.pluginUiOrigins | list | `[]` | Exact HTTPS plugin UI origins allowed by Console CSP frame-src. Use separate DNS hostnames and optional non-default ports; wildcards, credentials, paths, queries, fragments, and duplicate origins are rejected. Empty keeps the stock policy. |
 | console.image | object | `{"repository":"ghcr.io/stellwerk-labs/platform-orchestrator-frontend","tag":"v1.3.0@sha256:f4df46342869932a9cd7c5e05d77de14684b53c31b8882543b9206495b17d17e"}` | Container image for the console |
 | console.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
 | console.image.repository | string | `"ghcr.io/stellwerk-labs/platform-orchestrator-frontend"` | Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend` |
