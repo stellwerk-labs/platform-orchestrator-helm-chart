@@ -86,6 +86,7 @@ for path in (
     "/orgs/atlas/projects/store/envs/prod/deletion-impact",
     "/orgs/atlas/projects/store/envs/prod/available-resource-types",
     "/orgs/atlas/projects/store/envs/prod/actions/refresh_runner",
+    "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome",
 ):
     assert matches(cp, path), f"Core route missing: {path}"
     assert not matches(dp, path) and not matches(iam, path), f"ambiguous Core route: {path}"
@@ -123,13 +124,23 @@ for path in ("/internal/orgs/atlas/module-version-pins/pin-1/actions/override",
              "/orgs/atlas/deployment-admissions/admission-1/unknown",
              "/orgs/atlas/deployment-admissions/admission-1/settle/extra",
              "/orgs/atlas/deployment-admissions/admission-1/seal-absence/extra",
-             "/orgs/atlas/projects/store/envs/prod/actions/force-delete"):
+             "/orgs/atlas/projects/store/envs/prod/actions/force-delete",
+             "/orgs/atlas/projects/store/envs/prod/deployments",
+             "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1",
+             "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge",
+             "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome/extra",
+             "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/retry",
+             "/orgs/atlas/projects/store/envs/prod/deployments/a/b/actions/acknowledge-outcome",
+             "/orgs/atlas/deployments/deployment-1/actions/acknowledge-outcome"):
     assert not matches(cp, path), f"unexpected public Core route: {path}"
 
 for path in ("/orgs/atlas/plugins/dev.example.optional-addon/capabilities/extra",
              "/orgs/atlas/plugins/dev.example.optional-addon/invoke",
              "/auth/plugin-workload-token/extra", "/plugin-workload-bindings/binding-1/extra"):
     assert not matches(iam, path), f"unexpected public IAM route: {path}"
+
+acknowledgement = "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome"
+assert not matches(dp, acknowledgement) and not matches(iam, acknowledgement), "outcome acknowledgement belongs to Core only"
 
 for path in ("/.well-known/openid-configuration", "/.well-known/jwks"):
     assert matches(oidc, path), f"missing OIDC route: {path}"

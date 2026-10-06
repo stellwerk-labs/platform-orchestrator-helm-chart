@@ -127,6 +127,9 @@ control-plane:
           value: "^/orgs/[^/]+/deployment-admissions/[^/]+(/(settle|seal-absence))?$"
       - path:
           type: RegularExpression
+          value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/deployments/[^/]+/actions/acknowledge-outcome$"
+      - path:
+          type: RegularExpression
           value: "^/orgs/[^/]+/plugins/[^/]+/(entitlement|inventory|deployment-reads|authorization-checks|operations/[^/]+(/(modules|authorize|control|check|resource-events|events|pins(/receipts/[^/]+)?|deployments(/[^/]+/reconcile)?))?)$"
       - path:
           type: RegularExpression
