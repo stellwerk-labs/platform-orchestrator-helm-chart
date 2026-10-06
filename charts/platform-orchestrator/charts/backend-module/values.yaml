@@ -90,6 +90,26 @@ envFromSecrets: []
 # -- Environment variables included in the ConfigMap
 config: {}
 
+# -- Disabled-by-default groups of ConfigMap values and operator-owned Secret
+# file mounts. A profile contributes nothing until `enabled` is true. Every
+# enabled Secret file requires a non-empty Secret name, key, and absolute mount
+# path; Helm rendering fails closed when any reference is incomplete.
+configurationProfiles: {}
+#  example:
+#    enabled: false
+#    config:
+#      FEATURE_ENABLED: "true"
+#      FEATURE_KEY_FILE: /var/run/secrets/example/key.pem
+#    requiredConfig:
+#      - FEATURE_ENABLED
+#    httpsOrigins:
+#      - FEATURE_PUBLIC_ORIGIN
+#    secretFiles:
+#      - name: example-key
+#        secretName: example-operator-secret
+#        key: key.pem
+#        mountPath: /var/run/secrets/example/key.pem
+
 # -- OpenTelemetry configuration
 otel:
   # -- Enable OpenTelemetry instrumentation

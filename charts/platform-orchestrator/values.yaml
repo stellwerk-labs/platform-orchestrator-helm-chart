@@ -63,6 +63,34 @@ control-plane:
           name: platform-orchestrator-secrets
           key: natsAuthToken
 
+  # -- Native plugin gateway configuration. This profile is inert until an
+  # operator enables it and supplies all referenced Secrets. The signing key
+  # remains private to Core; plugin runtimes receive only its public key.
+  configurationProfiles:
+    nativePluginGateway:
+      enabled: false
+      config:
+        PLUGIN_EXPERIMENT_ENABLED: "true"
+        PLUGIN_INSTALLATIONS_FILE: /var/run/secrets/stellwerk/plugins/installations.json
+        PLUGIN_SIGNING_KEY_FILE: /var/run/secrets/stellwerk/plugins/signing-key.pem
+        PLUGIN_ISSUER: stellwerk-control-plane
+        PLUGIN_CA_FILE: /var/run/secrets/stellwerk/plugins/plugin-ca.pem
+        PLUGIN_DEVELOPMENT_HTTP: "false"
+        PLUGIN_DATA_PLANE_INTERNAL_HTTP: "false"
+      secretFiles:
+        - name: native-plugin-installations
+          secretName: ""
+          key: installations.json
+          mountPath: /var/run/secrets/stellwerk/plugins/installations.json
+        - name: native-plugin-signing-key
+          secretName: ""
+          key: signing-key.pem
+          mountPath: /var/run/secrets/stellwerk/plugins/signing-key.pem
+        - name: native-plugin-ca
+          secretName: ""
+          key: plugin-ca.pem
+          mountPath: /var/run/secrets/stellwerk/plugins/plugin-ca.pem
+
   # -- Service account configuration
   serviceAccount:
     # -- Allow the service account to create tokens (needed for Vault auth)
@@ -160,6 +188,33 @@ data-plane:
         secretKeyRef:
           name: platform-orchestrator-secrets
           key: runnerTokenSalt
+
+  # -- Native external-deployment admission. This profile is inert until an
+  # operator enables it and supplies the verifier and scoped service-token
+  # Secrets. The operator must provide the authenticated HTTPS backend Gateway
+  # origin; the admission endpoint is not public.
+  configurationProfiles:
+    nativeExternalDeployment:
+      enabled: false
+      config:
+        EXTERNAL_DEPLOYMENT_ENABLED: "true"
+        EXTERNAL_DEPLOYMENT_ISSUER: stellwerk-control-plane
+        EXTERNAL_DEPLOYMENT_VERIFICATION_KEY_FILE: /var/run/secrets/stellwerk/plugins/gateway-public-key.pem
+        EXTERNAL_DEPLOYMENT_CORE_GATEWAY_URL: ""
+        EXTERNAL_DEPLOYMENT_CORE_BEARER_TOKEN_FILE: /var/run/secrets/stellwerk/plugins/core-bearer-token
+      requiredConfig:
+        - EXTERNAL_DEPLOYMENT_CORE_GATEWAY_URL
+      httpsOrigins:
+        - EXTERNAL_DEPLOYMENT_CORE_GATEWAY_URL
+      secretFiles:
+        - name: native-plugin-verification-key
+          secretName: ""
+          key: gateway-public-key.pem
+          mountPath: /var/run/secrets/stellwerk/plugins/gateway-public-key.pem
+        - name: native-plugin-core-token
+          secretName: ""
+          key: core-bearer-token
+          mountPath: /var/run/secrets/stellwerk/plugins/core-bearer-token
 
   # -- Service account configuration
   serviceAccount:

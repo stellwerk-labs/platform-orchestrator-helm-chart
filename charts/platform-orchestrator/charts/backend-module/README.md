@@ -8,6 +8,7 @@ A Helm chart for deploying Platform Orchestrator backend module
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Pod affinity rules |
 | config | object | `{}` | Environment variables included in the ConfigMap |
+| configurationProfiles | object | `{}` | Disabled-by-default groups of ConfigMap values and operator-owned Secret file mounts. A profile contributes nothing until `enabled` is true. Every enabled Secret file requires a non-empty Secret name, key, and absolute mount path; Helm rendering fails closed when any reference is incomplete. |
 | env | list | `[]` | Additional environment variables (typically secret references) |
 | envFromSecrets | list | `[]` | Names of secrets to load as environment variables via envFrom |
 | gatewayApi | object | `{"route":{}}` | Gateway API HTTPRoute configuration (created when global Gateway API is enabled) |
