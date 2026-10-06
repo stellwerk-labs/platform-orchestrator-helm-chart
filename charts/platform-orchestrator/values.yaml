@@ -75,7 +75,7 @@ control-plane:
       matches:
       - path:
           type: RegularExpression
-          value: "/orgs($|/[^/]+($|/(envs|env-types|resource-types|module-providers|runners|runner-rules|modules|module-rules|module-catalogue|module-version-pins|module-version-lifecycle-transactions)($|/.*)|/plugins/[^/]+$|/projects($|/[^/]+($|/envs($|/[^/]+($|/(actions/refresh_runner|available-resource-types|deletion-impact)$))))))"
+          value: "/orgs($|/[^/]+($|/(envs|env-types|resource-types|module-providers|runners|runner-rules|modules|module-rules|module-catalogue|module-version-pins|module-version-lifecycle-transactions)($|/.*)|/plugins($|/[^/]+($|/invoke))|/projects($|/[^/]+($|/envs($|/[^/]+($|/(actions/refresh_runner|available-resource-types|deletion-impact)$))))))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
@@ -288,7 +288,7 @@ iam:
       matches:
         - path:
             type: RegularExpression
-            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/sso/.+|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/sso/.+|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:

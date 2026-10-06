@@ -59,7 +59,8 @@ for path in (
     "/orgs/atlas/module-version-pins/bulk",
     "/orgs/atlas/module-version-pins/pin-1/notes",
     "/orgs/atlas/module-version-pins/pin-1/actions/unpin",
-    "/orgs/atlas/plugins/dev.example.optional-addon",
+    "/orgs/atlas/plugins", "/orgs/atlas/plugins/dev.example.optional-addon",
+    "/orgs/atlas/plugins/dev.example.optional-addon/invoke",
     "/orgs/atlas/projects", "/orgs/atlas/projects/store",
     "/orgs/atlas/projects/store/envs", "/orgs/atlas/projects/store/envs/prod",
     "/orgs/atlas/projects/store/envs/prod/deletion-impact",
@@ -74,14 +75,21 @@ for path in ("/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-
              "/orgs/atlas/last-deployments", "/orgs/atlas/metadata-keys"):
     assert matches(dp, path) and not matches(cp, path), f"wrong Deployment owner: {path}"
 
-for path in ("/auth/check-permissions", "/orgs/atlas/permissions", "/orgs/atlas/projects/store/users",
+for path in ("/auth/check-permissions", "/orgs/atlas/permissions",
+             "/orgs/atlas/plugins/dev.example.optional-addon/capabilities", "/orgs/atlas/projects/store/users",
              "/orgs/atlas/projects/store/envs/prod/users/user-1/memberships"):
-    assert matches(iam, path) and not matches(cp, path), f"wrong IAM owner: {path}"
+    assert matches(iam, path) and not matches(cp, path) and not matches(dp, path), f"wrong IAM owner: {path}"
 
 for path in ("/internal/orgs/atlas/module-version-pins/pin-1/actions/override",
              "/orgs/atlas/rollouts", "/orgs/atlas/plugins/plugin/private-operation",
+             "/orgs/atlas/plugins/dev.example.optional-addon/invoke/extra",
+             "/orgs/atlas/plugins/dev.example.optional-addon/capabilities",
              "/orgs/atlas/projects/store/envs/prod/actions/force-delete"):
     assert not matches(cp, path), f"unexpected public Core route: {path}"
+
+for path in ("/orgs/atlas/plugins/dev.example.optional-addon/capabilities/extra",
+             "/orgs/atlas/plugins/dev.example.optional-addon/invoke"):
+    assert not matches(iam, path), f"unexpected public IAM route: {path}"
 
 for path in ("/.well-known/openid-configuration", "/.well-known/jwks"):
     assert matches(oidc, path), f"missing OIDC route: {path}"
