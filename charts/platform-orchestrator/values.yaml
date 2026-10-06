@@ -88,7 +88,7 @@ control-plane:
     nativePluginGateway:
       enabled: false
       config:
-        PLUGIN_EXPERIMENT_ENABLED: "true"
+        PLUGIN_HOST_ENABLED: "true"
         PLUGIN_INSTALLATIONS_FILE: /var/run/secrets/stellwerk/plugins/installations.json
         PLUGIN_SIGNING_KEY_FILE: /var/run/secrets/stellwerk/plugins/signing-key.pem
         PLUGIN_ISSUER: stellwerk-control-plane

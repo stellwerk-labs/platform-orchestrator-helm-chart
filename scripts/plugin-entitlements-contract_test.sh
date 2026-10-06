@@ -46,7 +46,7 @@ assert deployment.count("subPath: secret-value") == 2
 assert deployment.count("readOnly: true") == 2
 assert "secretName: licence-trust-v1" in deployment
 assert "secretName: licence-bundle-v1" in deployment
-assert "PLUGIN_EXPERIMENT_ENABLED" not in config, "A licence must not enable a plugin"
+assert "PLUGIN_HOST_ENABLED" not in config, "A licence must not enable a plugin"
 assert "secretName is required" in (root / "missing-secret.log").read_text()
 print("Plugin entitlement chart contract passed")
 PY

@@ -105,14 +105,14 @@ defaults, enabled = sys.argv[1:]
 for component in ("control-plane", "data-plane"):
     default_config = resource(defaults, "ConfigMap", f"platform-orchestrator-{component}-config")
     default_deployment = resource(defaults, "Deployment", f"platform-orchestrator-{component}")
-    assert "PLUGIN_EXPERIMENT_ENABLED" not in default_config
+    assert "PLUGIN_HOST_ENABLED" not in default_config
     assert "EXTERNAL_DEPLOYMENT_ENABLED" not in default_config
     assert "native-plugin-installations" not in default_deployment
     assert "native-plugin-verification-key" not in default_deployment
 
 cp_config = resource(enabled, "ConfigMap", "platform-orchestrator-control-plane-config")
 cp_deployment = resource(enabled, "Deployment", "platform-orchestrator-control-plane")
-assert 'PLUGIN_EXPERIMENT_ENABLED: "true"' in cp_config
+assert 'PLUGIN_HOST_ENABLED: "true"' in cp_config
 assert "PLUGIN_INSTALLATIONS_FILE: /var/run/secrets/stellwerk/plugins/installations.json" in cp_config
 assert "PLUGIN_SIGNING_KEY_FILE: /var/run/secrets/stellwerk/plugins/signing-key.pem" in cp_config
 assert "PLUGIN_CA_FILE: /var/run/secrets/stellwerk/plugins/plugin-ca.pem" in cp_config
@@ -135,7 +135,7 @@ assert 'mountPath: "/var/run/secrets/stellwerk/plugins/core-bearer-token"' in dp
 
 iam_config = resource(enabled, "ConfigMap", "platform-orchestrator-iam-config")
 iam_deployment = resource(enabled, "Deployment", "platform-orchestrator-iam")
-assert "PLUGIN_EXPERIMENT_ENABLED" not in iam_config
+assert "PLUGIN_HOST_ENABLED" not in iam_config
 assert "EXTERNAL_DEPLOYMENT_ENABLED" not in iam_config
 assert "native-plugin-" not in iam_deployment
 
