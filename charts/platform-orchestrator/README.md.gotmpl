@@ -23,6 +23,25 @@ The chart deploys the following components:
 | **Runner gateway** | runner image | Outbound HTTPS interface for agents and deployment Jobs |
 | **Keycloak** | `keycloak` | Identity provider and SSO |
 
+## Native plugin configuration
+
+The experimental `control-plane.configurationProfiles.nativePluginEntitlements`
+profile is disabled by default and does not enable a plugin. When explicitly
+enabled alongside the native gateway, it mounts a public issuer trust document
+and signed offline licence bundle into Core. It never mounts an issuer private
+key and does not send these documents to the plugin, Data Plane, IAM or Console.
+Production mode rejects development trust. Development-mode installations must
+explicitly select `PLUGIN_ENTITLEMENT_MODE: development`.
+
+The existing `secretFiles` adapter uses read-only single-file `subPath` mounts.
+Keep the `/etc/stellwerk/entitlements` paths: the strict Core reader rejects
+symlinks, including projected-Secret directory paths and common `/var/run`
+aliases. Use versioned Secret names and roll Core after a trust or bundle
+change; `subPath` mounts do not refresh in place. Secrets contain only public
+issuer keys and signed documents, never the signing key. Expiry and revocation
+stop new work while preserving previously activated read and recovery access
+under the existing permissions.
+
 ## Prerequisites
 
 - Kubernetes 1.27+

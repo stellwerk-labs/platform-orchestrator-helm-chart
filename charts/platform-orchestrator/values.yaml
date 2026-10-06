@@ -67,6 +67,24 @@ control-plane:
   # operator enables it and supplies all referenced Secrets. The signing key
   # remains private to Core; plugin runtimes receive only its public key.
   configurationProfiles:
+    # -- Offline licence evidence is consumed only by Core. This profile does
+    # not enable plugins or grant IAM rights. The issuer's private key is never
+    # mounted. Use versioned Secrets and restart Core when replacing evidence.
+    nativePluginEntitlements:
+      enabled: false
+      config:
+        PLUGIN_ENTITLEMENT_MODE: production
+        PLUGIN_ENTITLEMENT_TRUST_FILE: /etc/stellwerk/entitlements/trust.json
+        PLUGIN_ENTITLEMENT_BUNDLE_FILE: /etc/stellwerk/entitlements/bundle.json
+      secretFiles:
+        - name: native-plugin-entitlement-trust
+          secretName: ""
+          key: trust.json
+          mountPath: /etc/stellwerk/entitlements/trust.json
+        - name: native-plugin-entitlement-bundle
+          secretName: ""
+          key: bundle.json
+          mountPath: /etc/stellwerk/entitlements/bundle.json
     nativePluginGateway:
       enabled: false
       config:
@@ -104,6 +122,15 @@ control-plane:
       - path:
           type: RegularExpression
           value: "/orgs($|/[^/]+($|/(envs|env-types|resource-types|module-providers|runners|runner-rules|modules|module-rules|module-catalogue|module-version-pins|module-version-lifecycle-transactions)($|/.*)|/plugins($|/[^/]+($|/invoke))|/projects($|/[^/]+($|/envs($|/[^/]+($|/(actions/refresh_runner|available-resource-types|deletion-impact)$))))))"
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/deployment-admissions/[^/]+(/(settle|seal-absence))?$"
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/plugins/[^/]+/(entitlement|inventory|deployment-reads|authorization-checks|operations/[^/]+(/(modules|authorize|control|check|resource-events|events|pins(/receipts/[^/]+)?|deployments(/[^/]+/reconcile)?))?)$"
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/plugins/[^/]+/projects/[^/]+/envs/[^/]+/deployments/[^/]+/(logs|outputs)$"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
