@@ -97,7 +97,8 @@ for path in ("/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-
 
 for path in ("/auth/check-permissions", "/orgs/atlas/permissions",
              "/orgs/atlas/plugins/dev.example.optional-addon/capabilities", "/orgs/atlas/projects/store/users",
-             "/orgs/atlas/projects/store/envs/prod/users/user-1/memberships"):
+             "/orgs/atlas/projects/store/envs/prod/users/user-1/memberships",
+             "/auth/plugin-workload-token", "/plugin-workload-bindings", "/plugin-workload-bindings/binding-1"):
     assert matches(iam, path) and not matches(cp, path) and not matches(dp, path), f"wrong IAM owner: {path}"
 
 for path in ("/internal/orgs/atlas/module-version-pins/pin-1/actions/override",
@@ -126,7 +127,8 @@ for path in ("/internal/orgs/atlas/module-version-pins/pin-1/actions/override",
     assert not matches(cp, path), f"unexpected public Core route: {path}"
 
 for path in ("/orgs/atlas/plugins/dev.example.optional-addon/capabilities/extra",
-             "/orgs/atlas/plugins/dev.example.optional-addon/invoke"):
+             "/orgs/atlas/plugins/dev.example.optional-addon/invoke",
+             "/auth/plugin-workload-token/extra", "/plugin-workload-bindings/binding-1/extra"):
     assert not matches(iam, path), f"unexpected public IAM route: {path}"
 
 for path in ("/.well-known/openid-configuration", "/.well-known/jwks"):

@@ -52,6 +52,54 @@ This grants framing only, without adding script or network permissions. Each
 plugin runtime must independently restrict `frame-ancestors` to the Console
 origin, and the host still validates every bridge message and operation.
 
+## Plugin workload identity (v1alpha)
+
+Plugin workloads authenticate to Core with short-lived IAM tokens obtained by
+exchanging their projected Kubernetes ServiceAccount token, not with static
+service-user tokens. The exchange is off by default and the chart then renders
+no IAM configuration or RBAC for it. Enabling it needs an IAM image that
+contains the v1alpha workload token exchange.
+
+1. Enable `iam.configurationProfiles.pluginWorkloadIdentity` and set
+   `PLUGIN_WORKLOAD_TOKEN_ISSUER` to the cluster's ServiceAccount issuer, the
+   `issuer` field of `kubectl get --raw /.well-known/openid-configuration`.
+   Set `PLUGIN_WORKLOAD_BINDING_WRITERS` to the IAM principal ID of the
+   installation controller. Only listed principals hold the platform-level
+   permission `plugin_workload_binding_write`; organization roles cannot grant
+   it. IAM reads `https://kubernetes.default.svc/openid/v1/jwks` with its own
+   ServiceAccount token and the cluster CA. The chart mounts that token and
+   binds IAM's ServiceAccount to the built-in read-only ClusterRole
+   `system:service-account-issuer-discovery`, which Kubernetes also grants to
+   all ServiceAccounts by default; nothing else is granted.
+2. Create the plugin's service user in its organization with a long expiry,
+   for example `"expiry_in_days": 3650`, and grant it the roles the plugin
+   needs. Its expiry stays the service user's activity horizon. Binding it
+   disables its static token and IAM refuses to issue a new one, so extending
+   the horizon later requires revoking the binding, regenerating and binding
+   again. Name this service user as `service_user_id` in the plugin
+   installation record.
+3. As the installation controller, create the binding with
+   `POST /plugin-workload-bindings` and `issuer`, `namespace`,
+   `service_account`, `audience`, `service_user_id`, `plugin_id` and
+   `installation_id`. A ServiceAccount and a service user each have at most
+   one binding. `DELETE /plugin-workload-bindings/{bindingId}` revokes it;
+   the next request with any token issued for it fails.
+4. Run the plugin runtime under exactly that ServiceAccount with a projected
+   token volume whose `audience` equals the binding's `audience` (and no other
+   audience) and whose `expirationSeconds` is at most 600. The runtime posts it
+   to `POST /auth/plugin-workload-token` (RFC 8693 field names) and sends the
+   returned `PWT-` token as `Authorization: Bearer`. Tokens are valid for at
+   most `PLUGIN_WORKLOAD_TOKEN_TTL` (15 minutes) and never longer than the
+   projected token; a deleted Pod's token stays valid until it expires.
+
+Where IAM cannot reach the API server, export the key set with
+`kubectl get --raw /openid/v1/jwks`, store it as `jwks.json` in a Secret,
+enable `iam.configurationProfiles.pluginWorkloadStaticJWKS` with that Secret
+name and set `serviceAccountIssuerDiscovery: false`. The file is a `subPath`
+mount: roll IAM after the cluster rotates its signing keys.
+`PLUGIN_WORKLOAD_STATIC_TOKEN_ADAPTER: v1alpha` keeps static tokens of bound
+service users usable during a migration only; leave it empty in production.
+
 ## Prerequisites
 
 - Kubernetes 1.27+

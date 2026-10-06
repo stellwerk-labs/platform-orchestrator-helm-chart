@@ -363,6 +363,49 @@ iam:
           name: platform-orchestrator-secrets
           key: superUserToken
 
+  # -- Plugin workload identity (contract level v1alpha). Both profiles are
+  # disabled by default, which keeps the token exchange off and renders no RBAC.
+  configurationProfiles:
+    # -- Exchange projected Kubernetes ServiceAccount tokens of plugin
+    # workloads for short-lived IAM tokens. Enabling it requires
+    # `PLUGIN_WORKLOAD_TOKEN_ISSUER` and an IAM image with the exchange. IAM
+    # then reads the in-cluster JWKS with its own ServiceAccount token and
+    # cluster CA; `serviceAccountIssuerDiscovery` mounts that token and binds
+    # only the read-only ClusterRole `system:service-account-issuer-discovery`.
+    # Set it to false when `pluginWorkloadStaticJWKS` supplies the keys.
+    pluginWorkloadIdentity:
+      enabled: false
+      serviceAccountIssuerDiscovery: true
+      requiredConfig:
+        - PLUGIN_WORKLOAD_TOKEN_ISSUER
+      config:
+        # -- The cluster's ServiceAccount token issuer (`--service-account-issuer`),
+        # for example `https://kubernetes.default.svc.cluster.local`
+        PLUGIN_WORKLOAD_TOKEN_ISSUER: ""
+        PLUGIN_WORKLOAD_JWKS_URL: https://kubernetes.default.svc/openid/v1/jwks
+        PLUGIN_WORKLOAD_JWKS_CA_FILE: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        PLUGIN_WORKLOAD_JWKS_TOKEN_FILE: /var/run/secrets/kubernetes.io/serviceaccount/token
+        # -- Lifetime of issued plugin workload tokens, 1m to 15m. Never empty:
+        # an empty value overrides the IAM default and fails startup.
+        PLUGIN_WORKLOAD_TOKEN_TTL: 15m
+        # -- Comma-separated IAM principal UUIDs holding the platform-level
+        # permission `plugin_workload_binding_write` (the installation controller)
+        PLUGIN_WORKLOAD_BINDING_WRITERS: ""
+        # -- Transitional adapter keeping static tokens of bound service users
+        # usable. Empty disables it; the only accepted version is `v1alpha`.
+        PLUGIN_WORKLOAD_STATIC_TOKEN_ADAPTER: ""
+    # -- Operator-supplied JWKS for clusters where IAM cannot reach the API
+    # server. Mounted read-only from a Secret; roll IAM after replacing it.
+    pluginWorkloadStaticJWKS:
+      enabled: false
+      config:
+        PLUGIN_WORKLOAD_JWKS_FILE: /etc/stellwerk/plugin-workload/jwks.json
+      secretFiles:
+        - name: plugin-workload-jwks
+          secretName: ""
+          key: jwks.json
+          mountPath: /etc/stellwerk/plugin-workload/jwks.json
+
   # -- Gateway API HTTPRoute configuration for IAM
   gatewayApi:
     route:
@@ -370,7 +413,7 @@ iam:
       matches:
         - path:
             type: RegularExpression
-            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/sso/.+|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:

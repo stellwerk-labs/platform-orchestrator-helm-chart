@@ -70,6 +70,9 @@ jobs:
       - name: Test offline plugin entitlement configuration
         run: bash scripts/plugin-entitlements-contract_test.sh
 
+      - name: Test IAM plugin workload identity configuration
+        run: bash scripts/iam-plugin-workload-identity-contract_test.sh
+
       - name: Test backend startup budget
         run: bash scripts/backend-startup-contract_test.sh
 
