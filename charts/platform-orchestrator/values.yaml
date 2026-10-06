@@ -130,7 +130,7 @@ control-plane:
           value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/deployments/[^/]+/actions/acknowledge-outcome$"
       - path:
           type: RegularExpression
-          value: "^/orgs/[^/]+/plugins/[^/]+/(entitlement|inventory|deployment-reads|authorization-checks|operations/[^/]+(/(modules|authorize|control|check|resource-events|events|pins(/receipts/[^/]+)?|deployments(/[^/]+/reconcile)?))?)$"
+          value: "^/orgs/[^/]+/plugins/[^/]+/(entitlement|inventory|deployment-reads|authorization-checks|operations/[^/]+(/(modules|authorize|control|check|inventory|resource-events|events|pins(/receipts/[^/]+)?|deployments(/[^/]+/reconcile)?))?)$"
       - path:
           type: RegularExpression
           value: "^/orgs/[^/]+/plugins/[^/]+/projects/[^/]+/envs/[^/]+/deployments/[^/]+/(logs|outputs)$"

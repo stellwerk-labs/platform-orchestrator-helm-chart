@@ -72,6 +72,7 @@ for path in (
     "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/resource-events",
     "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/events",
     "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/check",
+    "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/inventory",
     "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/deployments",
     "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/deployments/dispatch-1/reconcile",
     "/orgs/atlas/plugins/dev.example.optional-addon/operations/operation-1/pins",
