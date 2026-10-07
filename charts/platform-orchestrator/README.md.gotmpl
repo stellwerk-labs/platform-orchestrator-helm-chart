@@ -42,6 +42,12 @@ issuer keys and signed documents, never the signing key. Expiry and revocation
 stop new work while preserving previously activated read and recovery access
 under the existing permissions.
 
+IAM authorises the Plugin Manager API. Name its operators as comma-separated
+user IDs in `iam.config.PLUGIN_MANAGER_WRITERS` (manage plugins, includes read)
+and `iam.config.PLUGIN_MANAGER_READERS` (read only). Both are empty by default,
+so nobody can manage plugins until they are set. IAM refuses to start if either
+lists a service user.
+
 Plugin pages also require an operator-reviewed Console CSP allowance. Set
 `console.gatewayApi.route.pluginUiOrigins` to the exact HTTPS origins declared
 by the installed plugins, for example `["https://addons.example.com"]`.

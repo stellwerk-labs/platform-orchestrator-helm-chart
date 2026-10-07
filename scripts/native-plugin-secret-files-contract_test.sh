@@ -47,9 +47,11 @@ YAML
 
 helm template platform-orchestrator "$chart" -f "$values" >"$enabled"
 
+# Plugin Manager operators are IAM permission holders; Core only keeps its
+# snapshot refresh tuning.
 helm template platform-orchestrator "$chart" -f "$values" \
-  --set-string 'control-plane.configurationProfiles.nativePluginGateway.config.PLUGIN_MANAGER_READERS=11111111-1111-4111-8111-111111111111\,22222222-2222-4222-8222-222222222222' \
-  --set-string 'control-plane.configurationProfiles.nativePluginGateway.config.PLUGIN_MANAGER_WRITERS=33333333-3333-4333-8333-333333333333' \
+  --set-string 'iam.config.PLUGIN_MANAGER_READERS=11111111-1111-4111-8111-111111111111\,22222222-2222-4222-8222-222222222222' \
+  --set-string 'iam.config.PLUGIN_MANAGER_WRITERS=33333333-3333-4333-8333-333333333333' \
   --set-string 'control-plane.configurationProfiles.nativePluginGateway.config.PLUGIN_MANAGER_REFRESH_INTERVAL=2s' >"$manager"
 
 if helm template platform-orchestrator "$chart" \
@@ -103,12 +105,18 @@ def resource(filename, kind, name):
     )
 
 
+def plugin_manager_config(config):
+    return {key: value.strip('"')
+            for key, value in re.findall(r"^  (PLUGIN_MANAGER_[A-Z_]+): (.*)$", config, re.M)}
+
+
 defaults, enabled, manager = sys.argv[1:]
 for component in ("control-plane", "data-plane"):
     default_config = resource(defaults, "ConfigMap", f"platform-orchestrator-{component}-config")
     default_deployment = resource(defaults, "Deployment", f"platform-orchestrator-{component}")
     assert "PLUGIN_HOST_ENABLED" not in default_config
     assert "EXTERNAL_DEPLOYMENT_ENABLED" not in default_config
+    assert plugin_manager_config(default_config) == {}, plugin_manager_config(default_config)
     assert "native-plugin-signing-key" not in default_deployment
     assert "native-plugin-verification-key" not in default_deployment
 
@@ -117,7 +125,7 @@ cp_deployment = resource(enabled, "Deployment", "platform-orchestrator-control-p
 assert 'PLUGIN_HOST_ENABLED: "true"' in cp_config
 assert "PLUGIN_INSTALLATIONS_FILE" not in cp_config
 assert "PLUGIN_ENTITLEMENT_BUNDLE_FILE" not in cp_config
-assert "PLUGIN_MANAGER_" not in cp_config, "Plugin Manager settings render only when set"
+assert plugin_manager_config(cp_config) == {}, "Core renders no Plugin Manager settings unless tuned"
 assert "PLUGIN_SIGNING_KEY_FILE: /var/run/secrets/stellwerk/plugins/signing-key.pem" in cp_config
 assert "PLUGIN_CA_FILE: /var/run/secrets/stellwerk/plugins/plugin-ca.pem" in cp_config
 assert 'PLUGIN_DATA_PLANE_INTERNAL_HTTP: "false"' in cp_config
@@ -128,11 +136,28 @@ assert "secretName: cp-plugin-ca" in cp_deployment
 assert 'mountPath: "/var/run/secrets/stellwerk/plugins/signing-key.pem"' in cp_deployment
 assert 'mountPath: "/var/run/secrets/stellwerk/plugins/plugin-ca.pem"' in cp_deployment
 
+# Core keeps only its refresh tuning; the permission holders never reach it.
 mgr_config = resource(manager, "ConfigMap", "platform-orchestrator-control-plane-config")
-assert re.search(r'PLUGIN_MANAGER_READERS: "?11111111-1111-4111-8111-111111111111\,22222222-2222-4222-8222-222222222222"?$', mgr_config, re.M)
-assert re.search(r'PLUGIN_MANAGER_WRITERS: "?33333333-3333-4333-8333-333333333333"?$', mgr_config, re.M)
-assert re.search(r'PLUGIN_MANAGER_REFRESH_INTERVAL: "?2s"?$', mgr_config, re.M)
+assert plugin_manager_config(mgr_config) == {"PLUGIN_MANAGER_REFRESH_INTERVAL": "2s"}, plugin_manager_config(mgr_config)
 assert "PLUGIN_INSTALLATIONS_FILE" not in mgr_config
+
+# IAM holds the Plugin Manager permissions: empty (nobody) unless configured.
+for filename in (defaults, enabled):
+    iam_default = resource(filename, "ConfigMap", "platform-orchestrator-iam-config")
+    assert plugin_manager_config(iam_default) == {
+        "PLUGIN_MANAGER_READERS": "",
+        "PLUGIN_MANAGER_WRITERS": "",
+    }, plugin_manager_config(iam_default)
+mgr_iam_config = resource(manager, "ConfigMap", "platform-orchestrator-iam-config")
+assert plugin_manager_config(mgr_iam_config) == {
+    "PLUGIN_MANAGER_READERS": "11111111-1111-4111-8111-111111111111,22222222-2222-4222-8222-222222222222",
+    "PLUGIN_MANAGER_WRITERS": "33333333-3333-4333-8333-333333333333",
+}, plugin_manager_config(mgr_iam_config)
+mgr_dp_config = resource(manager, "ConfigMap", "platform-orchestrator-data-plane-config")
+assert plugin_manager_config(mgr_dp_config) == {}, plugin_manager_config(mgr_dp_config)
+mgr_iam_deployment = resource(manager, "Deployment", "platform-orchestrator-iam")
+assert re.search(r"envFrom:\n\s+- configMapRef:\n\s+name: platform-orchestrator-iam-config$", mgr_iam_deployment, re.M)
+assert "PLUGIN_MANAGER_" not in mgr_iam_deployment, "no pod env may shadow the IAM ConfigMap holders"
 
 dp_config = resource(enabled, "ConfigMap", "platform-orchestrator-data-plane-config")
 dp_deployment = resource(enabled, "Deployment", "platform-orchestrator-data-plane")
@@ -149,5 +174,5 @@ assert "PLUGIN_HOST_ENABLED" not in iam_config
 assert "EXTERNAL_DEPLOYMENT_ENABLED" not in iam_config
 assert "native-plugin-" not in iam_deployment
 
-print("Native plugin Secret files, disabled defaults, and CP/DP isolation: PASS")
+print("Native plugin Secret files, disabled defaults, CP/DP isolation and IAM Plugin Manager holders: PASS")
 PY

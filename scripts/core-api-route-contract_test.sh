@@ -147,6 +147,29 @@ for path in ("/orgs/atlas/plugins/dev.example.optional-addon/capabilities/extra"
              "/auth/plugin-workload-token/extra", "/plugin-workload-bindings/binding-1/extra"):
     assert not matches(iam, path), f"unexpected public IAM route: {path}"
 
+# IAM's /internal/ API (gateway ext-auth, Core authorisation checks, workload
+# binding lookups) is cluster-only. Every rendered rule that reaches IAM either
+# matches public paths only or is the admin rule mapping /admin/orgs onto
+# /internal/orgs; nothing else may rewrite into /internal/.
+iam_rules = []
+for name, (_, _, document) in routes.items():
+    for rule in re.split(r"^    - ", document.split("\n  rules:\n", 1)[-1], flags=re.M)[1:]:
+        if not re.search(r"- name: platform-orchestrator-iam$", rule, re.M):
+            continue
+        rule_paths = [(kind, value.strip().strip("\"'")) for kind, value in
+                      re.findall(r"- path:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", rule)]
+        rewrites = re.findall(r"(replacePrefixMatch|replaceFullPath): (\S+)", rule)
+        iam_rules.append(bool(rewrites))
+        if rewrites or "URLRewrite" in rule:
+            assert rule_paths == [("PathPrefix", "/admin/orgs")], (name, rule_paths)
+            assert rewrites == [("replacePrefixMatch", "/internal/orgs")], (name, rewrites)
+            continue
+        for path in ("/internal/authenticate", "/internal/authorize",
+                     "/internal/plugin-workload-bindings", "/internal/orgs/atlas/members",
+                     "/internal/orgs/atlas/module-version-pins/pin-1/actions/override"):
+            assert not matches(rule_paths, path), f"IAM internal path exposed by {name}: {path}"
+assert set(iam_rules) == {False, True}, iam_rules
+
 acknowledgement = "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome"
 assert not matches(dp, acknowledgement) and not matches(iam, acknowledgement), "outcome acknowledgement belongs to Core only"
 

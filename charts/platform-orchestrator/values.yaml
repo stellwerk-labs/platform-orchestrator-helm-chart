@@ -92,16 +92,12 @@ control-plane:
         PLUGIN_DEVELOPMENT_HTTP: "false"
         PLUGIN_DATA_PLANE_INTERNAL_HTTP: "false"
         # Plugin installation state lives in the Core database and is managed
-        # through the Plugin Manager API. The permission holders below are
-        # unset by default, so nobody can manage plugins until an operator
-        # names them. Add these keys here (or under control-plane.config):
+        # through the Plugin Manager API. Its permission holders are configured
+        # in IAM (`iam.config.PLUGIN_MANAGER_READERS` and
+        # `iam.config.PLUGIN_MANAGER_WRITERS`), so nobody can manage plugins
+        # until an operator names them there. Optional Core tuning goes here
+        # (or under control-plane.config):
         #
-        # Comma-separated user IDs (UUIDs) holding plugin_manager_read.
-        # Writers also read. Service users never qualify; Core refuses to start
-        # if one is listed.
-        # PLUGIN_MANAGER_READERS: "<uuid>,<uuid>"
-        # Comma-separated user IDs (UUIDs) holding plugin_manager_write.
-        # PLUGIN_MANAGER_WRITERS: "<uuid>"
         # Upper bound on how stale a replica's plugin read snapshot (discovery,
         # routing, UI) can be. Core defaults to 2s; allowed range 100ms to 1m.
         # PLUGIN_MANAGER_REFRESH_INTERVAL: "2s"
@@ -346,6 +342,17 @@ iam:
     NATS_URL: "nats://platform-orchestrator-nats:4222"
     # -- OpenTelemetry collector endpoint
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-agent-collector.opentelemetry.svc.cluster.local:4317"
+    # -- Comma-separated user IDs (UUIDs) holding the platform permission
+    # `plugin_manager_read` (read the Plugin Manager API). Writers also read,
+    # so list read-only operators here. Only users qualify: a service user,
+    # the internal system identity or the nil UUID stops IAM from starting.
+    # Empty grants read to nobody beyond the writers.
+    PLUGIN_MANAGER_READERS: ""
+    # -- Comma-separated user IDs (UUIDs) holding the platform permission
+    # `plugin_manager_write` (manage plugins through the Plugin Manager API),
+    # which includes read. Only users qualify, as for the readers. Empty means
+    # nobody can manage plugins.
+    PLUGIN_MANAGER_WRITERS: ""
 
   # -- Additional environment variables (injected directly into the pod spec)
   # Typically used for secret references
