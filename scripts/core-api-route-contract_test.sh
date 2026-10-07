@@ -88,6 +88,11 @@ for path in (
     "/orgs/atlas/projects/store/envs/prod/available-resource-types",
     "/orgs/atlas/projects/store/envs/prod/actions/refresh_runner",
     "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome",
+    "/plugin-packages", "/plugin-installations", "/plugin-installations/installation-1",
+    "/plugin-installations/installation-1/identity", "/plugin-installations/installation-1/upgrade",
+    "/plugin-installations/installation-1/actions/activate",
+    "/plugin-installations/installation-1/organizations/atlas", "/plugin-entitlement-bundles",
+    "/plugin-audit-events",
 ):
     assert matches(cp, path), f"Core route missing: {path}"
     assert not matches(dp, path) and not matches(iam, path), f"ambiguous Core route: {path}"
