@@ -194,6 +194,12 @@ data-plane:
     RUNNER_GATEWAY_URL: "https://api.platform-orchestrator.local/runner-gateway"
     # -- Namespace-qualified gateway for Kubernetes runner Jobs in any namespace of this cluster. Override for a different release name or Orchestrator namespace.
     RUNNER_GATEWAY_INTERNAL_URL: "http://platform-orchestrator-runner-gateway.platform-orchestrator.svc:8080/runner-gateway"
+    # -- Most deploy and rollback requests one Environment may hold in its deployment queue
+    DEPLOYMENT_QUEUE_MAX_DEPTH: "10"
+    # -- How long a queued deploy or rollback waits before it expires, unless the request sets its own TTL
+    DEPLOYMENT_QUEUE_DEFAULT_TTL: "2h"
+    # -- Longest TTL a queued request may ask for
+    DEPLOYMENT_QUEUE_MAX_TTL: "24h"
 
   # -- Additional environment variables (injected directly into the pod spec)
   # Typically used for secret references
@@ -258,7 +264,7 @@ data-plane:
       matches:
         - path:
             type: RegularExpression
-            value: "/orgs/[^/]+/(deployments|last-deployments|active-resources|metadata-keys)($|/.*)"
+            value: "/orgs/[^/]+/(deployments|deployment-queue|last-deployments|active-resources|metadata-keys)($|/.*)"
       # -- Request timeout for data plane routes
       timeouts:
         request: 45s

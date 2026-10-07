@@ -94,7 +94,9 @@ for path in (
 
 for path in ("/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-logs",
              "/orgs/atlas/deployments/id/encrypted-outputs", "/orgs/atlas/active-resources",
-             "/orgs/atlas/last-deployments", "/orgs/atlas/metadata-keys"):
+             "/orgs/atlas/last-deployments", "/orgs/atlas/metadata-keys",
+             "/orgs/atlas/deployment-queue", "/orgs/atlas/deployment-queue/item-1",
+             "/orgs/atlas/deployment-queue/item-1/actions/cancel"):
     assert matches(dp, path) and not matches(cp, path), f"wrong Deployment owner: {path}"
 
 for path in ("/auth/check-permissions", "/orgs/atlas/permissions",
