@@ -9,7 +9,8 @@ relative=$(mktemp)
 insecure=$(mktemp)
 missing_origin=$(mktemp)
 values=$(mktemp)
-trap 'rm -f "$defaults" "$enabled" "$incomplete" "$relative" "$insecure" "$missing_origin" "$values"' EXIT
+manager=$(mktemp)
+trap 'rm -f "$manager" "$defaults" "$enabled" "$incomplete" "$relative" "$insecure" "$missing_origin" "$values"' EXIT
 
 helm template platform-orchestrator "$chart" >"$defaults"
 
@@ -19,10 +20,6 @@ control-plane:
     nativePluginGateway:
       enabled: true
       secretFiles:
-        - name: native-plugin-installations
-          secretName: cp-plugin-installations
-          key: installations.json
-          mountPath: /var/run/secrets/stellwerk/plugins/installations.json
         - name: native-plugin-signing-key
           secretName: cp-plugin-signing-key
           key: signing-key.pem
@@ -50,21 +47,26 @@ YAML
 
 helm template platform-orchestrator "$chart" -f "$values" >"$enabled"
 
+helm template platform-orchestrator "$chart" -f "$values" \
+  --set-string 'control-plane.configurationProfiles.nativePluginGateway.config.PLUGIN_MANAGER_READERS=11111111-1111-4111-8111-111111111111\,22222222-2222-4222-8222-222222222222' \
+  --set-string 'control-plane.configurationProfiles.nativePluginGateway.config.PLUGIN_MANAGER_WRITERS=33333333-3333-4333-8333-333333333333' \
+  --set-string 'control-plane.configurationProfiles.nativePluginGateway.config.PLUGIN_MANAGER_REFRESH_INTERVAL=2s' >"$manager"
+
 if helm template platform-orchestrator "$chart" \
   --set control-plane.configurationProfiles.nativePluginGateway.enabled=true \
   >"$incomplete" 2>&1; then
   echo "native plugin gateway accepted incomplete Secret references" >&2
   exit 1
 fi
-grep -q 'configurationProfiles.nativePluginGateway.secretFiles\[native-plugin-installations\].secretName is required' "$incomplete"
+grep -q 'configurationProfiles.nativePluginGateway.secretFiles\[native-plugin-signing-key\].secretName is required' "$incomplete"
 
 if helm template platform-orchestrator "$chart" -f "$values" \
-  --set control-plane.configurationProfiles.nativePluginGateway.secretFiles[0].mountPath=relative/installations.json \
+  --set control-plane.configurationProfiles.nativePluginGateway.secretFiles[0].mountPath=relative/signing-key.pem \
   >"$relative" 2>&1; then
   echo "native plugin gateway accepted a relative Secret mount path" >&2
   exit 1
 fi
-grep -q 'configurationProfiles.nativePluginGateway.secretFiles\[native-plugin-installations\].mountPath must be absolute' "$relative"
+grep -q 'configurationProfiles.nativePluginGateway.secretFiles\[native-plugin-signing-key\].mountPath must be absolute' "$relative"
 
 if helm template platform-orchestrator "$chart" -f "$values" \
   --set-string data-plane.configurationProfiles.nativeExternalDeployment.config.EXTERNAL_DEPLOYMENT_CORE_GATEWAY_URL=http://platform-orchestrator-control-plane:8080 \
@@ -82,7 +84,7 @@ if helm template platform-orchestrator "$chart" \
 fi
 grep -q 'configurationProfiles.nativeExternalDeployment.config.EXTERNAL_DEPLOYMENT_CORE_GATEWAY_URL is required' "$missing_origin"
 
-python3 - "$defaults" "$enabled" <<'PY'
+python3 - "$defaults" "$enabled" "$manager" <<'PY'
 import re
 import sys
 
@@ -101,28 +103,36 @@ def resource(filename, kind, name):
     )
 
 
-defaults, enabled = sys.argv[1:]
+defaults, enabled, manager = sys.argv[1:]
 for component in ("control-plane", "data-plane"):
     default_config = resource(defaults, "ConfigMap", f"platform-orchestrator-{component}-config")
     default_deployment = resource(defaults, "Deployment", f"platform-orchestrator-{component}")
     assert "PLUGIN_HOST_ENABLED" not in default_config
     assert "EXTERNAL_DEPLOYMENT_ENABLED" not in default_config
-    assert "native-plugin-installations" not in default_deployment
+    assert "native-plugin-signing-key" not in default_deployment
     assert "native-plugin-verification-key" not in default_deployment
 
 cp_config = resource(enabled, "ConfigMap", "platform-orchestrator-control-plane-config")
 cp_deployment = resource(enabled, "Deployment", "platform-orchestrator-control-plane")
 assert 'PLUGIN_HOST_ENABLED: "true"' in cp_config
-assert "PLUGIN_INSTALLATIONS_FILE: /var/run/secrets/stellwerk/plugins/installations.json" in cp_config
+assert "PLUGIN_INSTALLATIONS_FILE" not in cp_config
+assert "PLUGIN_ENTITLEMENT_BUNDLE_FILE" not in cp_config
+assert "PLUGIN_MANAGER_" not in cp_config, "Plugin Manager settings render only when set"
 assert "PLUGIN_SIGNING_KEY_FILE: /var/run/secrets/stellwerk/plugins/signing-key.pem" in cp_config
 assert "PLUGIN_CA_FILE: /var/run/secrets/stellwerk/plugins/plugin-ca.pem" in cp_config
 assert 'PLUGIN_DATA_PLANE_INTERNAL_HTTP: "false"' in cp_config
-assert "secretName: cp-plugin-installations" in cp_deployment
+assert "installations.json" not in cp_deployment
+assert "native-plugin-installations" not in cp_deployment
 assert "secretName: cp-plugin-signing-key" in cp_deployment
 assert "secretName: cp-plugin-ca" in cp_deployment
-assert 'mountPath: "/var/run/secrets/stellwerk/plugins/installations.json"' in cp_deployment
 assert 'mountPath: "/var/run/secrets/stellwerk/plugins/signing-key.pem"' in cp_deployment
 assert 'mountPath: "/var/run/secrets/stellwerk/plugins/plugin-ca.pem"' in cp_deployment
+
+mgr_config = resource(manager, "ConfigMap", "platform-orchestrator-control-plane-config")
+assert re.search(r'PLUGIN_MANAGER_READERS: "?11111111-1111-4111-8111-111111111111\,22222222-2222-4222-8222-222222222222"?$', mgr_config, re.M)
+assert re.search(r'PLUGIN_MANAGER_WRITERS: "?33333333-3333-4333-8333-333333333333"?$', mgr_config, re.M)
+assert re.search(r'PLUGIN_MANAGER_REFRESH_INTERVAL: "?2s"?$', mgr_config, re.M)
+assert "PLUGIN_INSTALLATIONS_FILE" not in mgr_config
 
 dp_config = resource(enabled, "ConfigMap", "platform-orchestrator-data-plane-config")
 dp_deployment = resource(enabled, "Deployment", "platform-orchestrator-data-plane")

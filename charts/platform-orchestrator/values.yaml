@@ -67,39 +67,45 @@ control-plane:
   # operator enables it and supplies all referenced Secrets. The signing key
   # remains private to Core; plugin runtimes receive only its public key.
   configurationProfiles:
-    # -- Offline licence evidence is consumed only by Core. This profile does
+    # -- Offline licence trust is consumed only by Core. This profile does
     # not enable plugins or grant IAM rights. The issuer's private key is never
-    # mounted. Use versioned Secrets and restart Core when replacing evidence.
+    # mounted. Only the trust file is mounted: licence bundles are imported
+    # through the Plugin Manager API. Use a versioned Secret and restart Core
+    # when replacing trust.
     nativePluginEntitlements:
       enabled: false
       config:
         PLUGIN_ENTITLEMENT_MODE: production
         PLUGIN_ENTITLEMENT_TRUST_FILE: /etc/stellwerk/entitlements/trust.json
-        PLUGIN_ENTITLEMENT_BUNDLE_FILE: /etc/stellwerk/entitlements/bundle.json
       secretFiles:
         - name: native-plugin-entitlement-trust
           secretName: ""
           key: trust.json
           mountPath: /etc/stellwerk/entitlements/trust.json
-        - name: native-plugin-entitlement-bundle
-          secretName: ""
-          key: bundle.json
-          mountPath: /etc/stellwerk/entitlements/bundle.json
     nativePluginGateway:
       enabled: false
       config:
         PLUGIN_HOST_ENABLED: "true"
-        PLUGIN_INSTALLATIONS_FILE: /var/run/secrets/stellwerk/plugins/installations.json
         PLUGIN_SIGNING_KEY_FILE: /var/run/secrets/stellwerk/plugins/signing-key.pem
         PLUGIN_ISSUER: stellwerk-control-plane
         PLUGIN_CA_FILE: /var/run/secrets/stellwerk/plugins/plugin-ca.pem
         PLUGIN_DEVELOPMENT_HTTP: "false"
         PLUGIN_DATA_PLANE_INTERNAL_HTTP: "false"
+        # Plugin installation state lives in the Core database and is managed
+        # through the Plugin Manager API. The permission holders below are
+        # unset by default, so nobody can manage plugins until an operator
+        # names them. Add these keys here (or under control-plane.config):
+        #
+        # Comma-separated user IDs (UUIDs) holding plugin_manager_read.
+        # Writers also read. Service users never qualify; Core refuses to start
+        # if one is listed.
+        # PLUGIN_MANAGER_READERS: "<uuid>,<uuid>"
+        # Comma-separated user IDs (UUIDs) holding plugin_manager_write.
+        # PLUGIN_MANAGER_WRITERS: "<uuid>"
+        # Upper bound on how stale a replica's plugin read snapshot (discovery,
+        # routing, UI) can be. Core defaults to 2s; allowed range 100ms to 1m.
+        # PLUGIN_MANAGER_REFRESH_INTERVAL: "2s"
       secretFiles:
-        - name: native-plugin-installations
-          secretName: ""
-          key: installations.json
-          mountPath: /var/run/secrets/stellwerk/plugins/installations.json
         - name: native-plugin-signing-key
           secretName: ""
           key: signing-key.pem
