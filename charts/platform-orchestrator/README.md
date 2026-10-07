@@ -82,14 +82,18 @@ contains the v1alpha workload token exchange.
    needs. Its expiry stays the service user's activity horizon. Binding it
    disables its static token and IAM refuses to issue a new one, so extending
    the horizon later requires revoking the binding, regenerating and binding
-   again. Name this service user as `service_user_id` in the plugin
-   installation record.
+   again.
 3. As the installation controller, create the binding with
    `POST /plugin-workload-bindings` and `issuer`, `namespace`,
    `service_account`, `audience`, `service_user_id`, `plugin_id` and
-   `installation_id`. A ServiceAccount and a service user each have at most
-   one binding. `DELETE /plugin-workload-bindings/{bindingId}` revokes it;
-   the next request with any token issued for it fails.
+   `installation_id`, the UUID Core assigned with
+   `POST /plugin-installations`. A ServiceAccount and a service user each
+   have at most one binding. `DELETE /plugin-workload-bindings/{bindingId}`
+   revokes it; the next request with any token issued for it fails. Only
+   then record the service user on the installation with
+   `PUT /plugin-installations/{id}/identity`: Core refuses it with
+   `409 plugin_workload_binding_missing` unless IAM binds exactly that plugin
+   ID, installation UUID and service user.
 4. Run the plugin runtime under exactly that ServiceAccount with a projected
    token volume whose `audience` equals the binding's `audience` (and no other
    audience) and whose `expirationSeconds` is at most 600. The runtime posts it
