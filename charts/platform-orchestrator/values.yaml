@@ -635,7 +635,7 @@ global:
         port: 8080
       # -- CORS configuration for the backend gateway
       cors:
-        # -- Allowed origins (supports wildcards)
+        # -- Allowed origins. Envoy Gateway turns each `*` into the regex `.*` over the whole origin. No entry may match a `console.gatewayApi.route.pluginUiOrigins` entry: with plugin UIs, list the exact Console origins
         allowOrigins:
           - "https://*.platform-orchestrator.local"
         # -- Allowed HTTP methods

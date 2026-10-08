@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the real Helm-rendered Console CSP and fail-closed origin validation."""
+"""Exercise the real Helm-rendered Console CSP and fail-closed plugin UI origin validation."""
 import json
 from pathlib import Path
 import re
@@ -16,10 +16,11 @@ STOCK_CSP = (
 )
 
 
-def render(origins=None, *, gateway_enabled=True):
-    values = {"global": {"gatewayApi": {
-        "enabled": gateway_enabled, "frontend": {"hostname": "console.example.test"},
-    }}}
+def render(origins=None, *, gateway_enabled=True, backend=None):
+    gateway = {"enabled": gateway_enabled, "frontend": {"hostname": "console.example.test"}}
+    if backend is not None:
+        gateway["backend"] = backend
+    values = {"global": {"gatewayApi": gateway}}
     if origins is not None:
         values["console"] = {"gatewayApi": {"route": {"pluginUiOrigins": origins}}}
     with tempfile.TemporaryDirectory(prefix="console-plugin-csp-") as directory:
@@ -31,15 +32,29 @@ def render(origins=None, *, gateway_enabled=True):
         )
 
 
-def console_csp(manifest):
-    route = next(
+def resource(manifest, kind, name):
+    return next(
         document for document in manifest.split("\n---")
-        if "kind: HTTPRoute\n" in document
-        and "\n  name: platform-orchestrator-console\n" in document
+        if f"kind: {kind}\n" in document and f"\n  name: {name}\n" in document
     )
+
+
+def console_csp(manifest):
+    route = resource(manifest, "HTTPRoute", "platform-orchestrator-console")
     match = re.search(r"name: Content-Security-Policy\s*\n\s*value: (.+)", route)
     assert match, "Console route must emit its CSP"
     return json.loads(match.group(1))
+
+
+def api_backend(*allow_origins, hostname="api.example.test"):
+    return {"hostname": hostname, "cors": {"allowOrigins": list(allow_origins)}}
+
+
+def api_cors_origins(manifest):
+    policy = resource(manifest, "SecurityPolicy", "platform-orchestrator-backend-gateway")
+    match = re.search(r"\n    allowOrigins:\n((?:    - .+\n)+)", policy)
+    assert match, "the API SecurityPolicy must emit its CORS origins"
+    return [line.removeprefix("    - ") for line in match.group(1).splitlines()]
 
 
 def normalize_generated_secrets(manifest):
@@ -114,6 +129,112 @@ class ConsolePluginUiCspContract(unittest.TestCase):
         result = render(["https://*.example.test"], gateway_enabled=False)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("console.gatewayApi.route.pluginUiOrigins", result.stderr)
+
+
+class PluginUiOutsideApiScope(unittest.TestCase):
+    """Plugin UIs never share the API session: neither its cookie nor its CORS policy."""
+
+    def assert_refused(self, origins, backend, *fragments, gateway_enabled=True):
+        result = render(origins, backend=backend, gateway_enabled=gateway_enabled)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        for fragment in ("console.gatewayApi.route.pluginUiOrigins", *fragments):
+            self.assertIn(fragment, result.stderr)
+
+    def test_installations_without_plugin_uis_keep_the_cors_default(self):
+        result = render()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(api_cors_origins(result.stdout), ["https://*.platform-orchestrator.local"])
+
+    def test_session_cookie_domain_is_the_api_hostname(self):
+        # The API hostname rule below mirrors this cookie scope.
+        result = render(backend=api_backend("https://console.example.test"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        config = resource(result.stdout, "ConfigMap", "platform-orchestrator-iam-config")
+        self.assertIn("\n  SESSION_TOKEN_COOKIE_DOMAIN: api.example.test\n", config)
+
+    def test_origins_outside_the_api_scope_render(self):
+        origins = ["https://rollouts.example.test", "https://tools.example-addons.test:8443",
+                   "https://example.test", "https://xapi.example.test"]
+        result = render(origins, backend=api_backend("https://console.example.test"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(" ".join(origins) + "; worker-src", console_csp(result.stdout))
+        self.assertEqual(api_cors_origins(result.stdout), ["https://console.example.test"])
+
+    def test_cors_entries_that_envoy_does_not_match_are_accepted(self):
+        cases = [
+            ("https://*.example.test", "https://rollouts.example.net"),
+            ("https://*.example.test", "https://example.test"),
+            ("https://*.example.test", "https://rollouts.example.test:8443"),
+            ("http://*.example.test", "https://rollouts.example.test"),
+            ("https://rollouts.example.test:8443", "https://rollouts.example.test"),
+            ("https://*.example.test", "https://rollouts.example.test.example.net"),
+        ]
+        for allowed, origin in cases:
+            with self.subTest(allowed=allowed, origin=origin):
+                result = render([origin], backend=api_backend("https://console.example.test", allowed))
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_origins_the_api_cors_policy_admits_are_refused(self):
+        cases = [
+            ("https://*.example.test", ["https://rollouts.example.test"]),
+            ("https://*.example.test", ["https://tools.example.org", "https://ui.rollouts.example.test"]),
+            ("https://*.example.test:8443", ["https://rollouts.example.test:8443"]),
+            ("https://*", ["https://rollouts.example.net"]),
+            ("*", ["https://rollouts.example.net"]),
+            ("https://rollouts.example.net", ["https://rollouts.example.net"]),
+        ]
+        for allowed, origins in cases:
+            origin = origins[-1]
+            with self.subTest(allowed=allowed, origin=origin):
+                self.assert_refused(
+                    origins, api_backend("https://console.example.test", allowed),
+                    f'entry "{origin}" matches global.gatewayApi.backend.cors.allowOrigins entry "{allowed}"',
+                    "list the exact Console origins in global.gatewayApi.backend.cors.allowOrigins",
+                    "serve plugin UIs from a domain that no entry matches",
+                )
+
+    def test_chart_default_cors_refuses_plugin_uis_under_its_domain(self):
+        self.assert_refused(
+            ["https://addons.platform-orchestrator.local"], None,
+            'allowOrigins entry "https://*.platform-orchestrator.local"',
+        )
+
+    def test_api_hostname_and_its_subdomains_are_refused_on_any_port(self):
+        for origin in ["https://api.example.test", "https://api.example.test:8443",
+                       "https://rollouts.api.example.test", "https://ui.rollouts.api.example.test:8443"]:
+            for hostname in ["api.example.test", "API.Example.test"]:
+                with self.subTest(origin=origin, hostname=hostname):
+                    self.assert_refused(
+                        [origin], api_backend("https://console.example.test", hostname=hostname),
+                        f'entry "{origin}" uses the API hostname "api.example.test" '
+                        "(global.gatewayApi.backend.hostname) or a subdomain of it",
+                        "serve plugin UIs from a hostname outside the API hostname",
+                    )
+
+    def test_console_hostname_is_refused_on_any_port(self):
+        for origin in ["https://console.example.test", "https://console.example.test:8443"]:
+            with self.subTest(origin=origin):
+                self.assert_refused(
+                    [origin], api_backend("https://console.example.test"),
+                    f'entry "{origin}" uses the Console hostname "console.example.test"',
+                )
+
+    def test_non_exact_origins_are_refused(self):
+        cases = [
+            ("https://*.example.net", "exact HTTPS origins"),
+            ("https://rollouts.example.net/", "exact HTTPS origins"),
+            ("http://rollouts.example.net", "exact HTTPS origins"),
+            ("https://rollouts.example.net:443", "omit the default HTTPS port 443"),
+        ]
+        for origin, reason in cases:
+            with self.subTest(origin=origin):
+                self.assert_refused([origin], api_backend("https://console.example.test"), reason)
+
+    def test_scope_is_checked_even_when_gateway_is_disabled(self):
+        self.assert_refused(["https://rollouts.api.example.test"], api_backend("https://console.example.test"),
+                            'API hostname "api.example.test"', gateway_enabled=False)
+        self.assert_refused(["https://rollouts.example.test"], api_backend("https://*.example.test"),
+                            'allowOrigins entry "https://*.example.test"', gateway_enabled=False)
 
 
 if __name__ == "__main__":

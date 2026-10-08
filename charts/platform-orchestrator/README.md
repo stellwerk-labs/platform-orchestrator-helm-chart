@@ -58,6 +58,37 @@ This grants framing only, without adding script or network permissions. Each
 plugin runtime must independently restrict `frame-ancestors` to the Console
 origin, and the host still validates every bridge message and operation.
 
+Plugin UIs must also stay outside the API's credentialed scope, so that only
+the Console can act with the user's session. IAM sets the session cookie with
+`Domain=` the API hostname (`global.gatewayApi.backend.hostname`), which sends
+it to that hostname and every subdomain, and the API's CORS policy answers the
+origins in `global.gatewayApi.backend.cors.allowOrigins` with credentials
+(`allowCredentials: true` by default). The chart therefore rejects a plugin UI origin on the API hostname or one of its
+subdomains (any port), and a plugin UI origin that an `allowOrigins` entry
+matches. Envoy Gateway turns each `*` of an entry into the regex `.*` and
+matches the whole origin, so the default `https://*.platform-orchestrator.local`
+admits every HTTPS origin under that domain without a port. Before adding plugin
+UI origins, list the exact Console origins, for example:
+
+```yaml
+global:
+  gatewayApi:
+    backend:
+      hostname: api.example.com
+      cors:
+        allowOrigins: ["https://console.example.com"]
+    frontend:
+      hostname: console.example.com
+console:
+  gatewayApi:
+    route:
+      pluginUiOrigins: ["https://rollouts.example-addons.com"]
+```
+
+A separate registrable domain for plugin UIs, as above, also keeps them from
+setting cookies for a parent domain they would share with the API. The CORS
+default stays unchanged for installations without plugin UIs.
+
 ## Plugin workload identity (v1alpha)
 
 Plugin workloads authenticate to Core with short-lived IAM tokens obtained by
@@ -178,7 +209,7 @@ gateway URL with it.
 | console.config.MICROSOFT_CLIENT_ID | string | `""` | Microsoft OAuth client ID for social login button (leave empty to hide) |
 | console.envFromSecrets | list | `[]` | Names of secrets to load as environment variables via envFrom |
 | console.gatewayApi | object | `{"route":{"matches":[{"path":{"type":"PathPrefix","value":"/"}}],"pluginUiOrigins":[]}}` | Gateway API HTTPRoute configuration (created when global Gateway API is enabled) |
-| console.gatewayApi.route.pluginUiOrigins | list | `[]` | Exact HTTPS plugin UI origins allowed by Console CSP frame-src. Use separate DNS hostnames and optional non-default ports; wildcards, credentials, paths, queries, fragments, and duplicate origins are rejected. Empty keeps the stock policy. |
+| console.gatewayApi.route.pluginUiOrigins | list | `[]` | Exact HTTPS plugin UI origins allowed by Console CSP frame-src. Use separate DNS hostnames and optional non-default ports; wildcards, credentials, paths, queries, fragments, and duplicate origins are rejected, as are the Console hostname, the API hostname and its subdomains (they receive the session cookie) and origins that `global.gatewayApi.backend.cors.allowOrigins` matches. Empty keeps the stock policy. |
 | console.image | object | `{"repository":"ghcr.io/stellwerk-labs/platform-orchestrator-frontend","tag":"v1.3.0@sha256:f4df46342869932a9cd7c5e05d77de14684b53c31b8882543b9206495b17d17e"}` | Container image for the console |
 | console.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
 | console.image.repository | string | `"ghcr.io/stellwerk-labs/platform-orchestrator-frontend"` | Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend` |
@@ -316,7 +347,7 @@ gateway URL with it.
 | global.gatewayApi.backend.cors.allowCredentials | bool | `true` | Allow credentials (cookies, authorization headers) |
 | global.gatewayApi.backend.cors.allowHeaders | list | `["DNT","Keep-Alive","User-Agent","X-Requested-With","If-Modified-Since","Cache-Control","Content-Type","Range","Authorization","Platform-Orchestrator-User-Agent","Idempotency-Key","If-Match"]` | Allowed request headers |
 | global.gatewayApi.backend.cors.allowMethods | list | `["GET","POST","PUT","PATCH","DELETE","OPTIONS"]` | Allowed HTTP methods |
-| global.gatewayApi.backend.cors.allowOrigins | list | `["https://*.platform-orchestrator.local"]` | Allowed origins (supports wildcards) |
+| global.gatewayApi.backend.cors.allowOrigins | list | `["https://*.platform-orchestrator.local"]` | Allowed origins. Envoy Gateway turns each `*` into the regex `.*` over the whole origin. No entry may match a `console.gatewayApi.route.pluginUiOrigins` entry: with plugin UIs, list the exact Console origins |
 | global.gatewayApi.backend.cors.exposeHeaders | list | `["Etag","Link"]` | Headers exposed to the browser |
 | global.gatewayApi.backend.cors.maxAge | string | `"24h"` | CORS preflight cache duration |
 | global.gatewayApi.backend.extAuth | object | `{"port":8080,"service":"platform-orchestrator-iam"}` | External authentication configuration (Envoy Gateway only) |

@@ -3,6 +3,17 @@
 {{- if not (kindIs "slice" $pluginUiOrigins) -}}
 {{- fail "console.gatewayApi.route.pluginUiOrigins must be a list of exact HTTPS origins" -}}
 {{- end -}}
+{{- /*
+Plugin UIs stay outside the API's credentialed scope. IAM scopes the session
+cookie to the API hostname, so that hostname and all its subdomains receive
+it, and the API's CORS policy admits the origins it matches, with credentials
+by default. Envoy Gateway turns each "*" of an allowed origin into the regex
+".*" and matches the whole Origin: "https://*.example.com" also admits
+"https://a.b.example.com", but not "https://a.example.com:8443".
+*/ -}}
+{{- $consoleHost := lower .Values.global.gatewayApi.frontend.hostname -}}
+{{- $apiHost := lower .Values.global.gatewayApi.backend.hostname -}}
+{{- $apiCorsOrigins := dig "cors" "allowOrigins" (list) .Values.global.gatewayApi.backend -}}
 {{- $seen := dict -}}
 {{- range $origin := $pluginUiOrigins -}}
 {{- if not (kindIs "string" $origin) -}}
@@ -34,8 +45,16 @@
 {{- fail "console.gatewayApi.route.pluginUiOrigins ports must be between 1 and 65535; omit the default HTTPS port 443" -}}
 {{- end -}}
 {{- end -}}
-{{- if eq $hostname (lower $.Values.global.gatewayApi.frontend.hostname) -}}
-{{- fail "console.gatewayApi.route.pluginUiOrigins must use a different hostname from the Console" -}}
+{{- if eq $hostname $consoleHost -}}
+{{- fail (printf "console.gatewayApi.route.pluginUiOrigins entry %q uses the Console hostname %q (global.gatewayApi.frontend.hostname); serve each plugin UI from a hostname of its own" $origin $consoleHost) -}}
+{{- end -}}
+{{- if or (eq $hostname $apiHost) (hasSuffix (printf ".%s" $apiHost) $hostname) -}}
+{{- fail (printf "console.gatewayApi.route.pluginUiOrigins entry %q uses the API hostname %q (global.gatewayApi.backend.hostname) or a subdomain of it, which receive the user's session cookie; serve plugin UIs from a hostname outside the API hostname" $origin $apiHost) -}}
+{{- end -}}
+{{- range $allowed := $apiCorsOrigins -}}
+{{- if regexMatch (printf "^%s$" (regexQuoteMeta $allowed | replace "\\*" ".*")) $origin -}}
+{{- fail (printf "console.gatewayApi.route.pluginUiOrigins entry %q matches global.gatewayApi.backend.cors.allowOrigins entry %q, so the API's CORS policy admits the plugin UI; list the exact Console origins in global.gatewayApi.backend.cors.allowOrigins, or serve plugin UIs from a domain that no entry matches" $origin $allowed) -}}
+{{- end -}}
 {{- end -}}
 {{- if hasKey $seen $origin -}}
 {{- fail "console.gatewayApi.route.pluginUiOrigins must not contain duplicate origins" -}}

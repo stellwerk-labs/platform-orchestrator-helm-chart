@@ -15,7 +15,7 @@ A Helm chart for deploying Platform Orchestrator Console
 | config.MICROSOFT_CLIENT_ID | string | `""` | Microsoft OAuth client ID for social login button (leave empty to hide) |
 | envFromSecrets | list | `[]` | Names of secrets to load as environment variables via envFrom |
 | gatewayApi | object | `{"route":{"matches":[{"path":{"type":"PathPrefix","value":"/"}}],"pluginUiOrigins":[]}}` | Gateway API HTTPRoute configuration (created when global Gateway API is enabled) |
-| gatewayApi.route.pluginUiOrigins | list | `[]` | Exact HTTPS plugin UI origins allowed by Console CSP frame-src. Use separate DNS hostnames and optional non-default ports; wildcards, credentials, paths, queries, fragments, and duplicate origins are rejected. Empty keeps the stock policy. |
+| gatewayApi.route.pluginUiOrigins | list | `[]` | Exact HTTPS plugin UI origins allowed by Console CSP frame-src. Use separate DNS hostnames and optional non-default ports; wildcards, credentials, paths, queries, fragments, and duplicate origins are rejected, as are the Console hostname, the API hostname and its subdomains (they receive the session cookie) and origins that `global.gatewayApi.backend.cors.allowOrigins` matches. Empty keeps the stock policy. |
 | image | object | `{"pullPolicy":"IfNotPresent","repository":"docker.io/library/busybox","tag":"latest"}` | Container image configuration |
 | image.pullPolicy | string | `"IfNotPresent"` | Image pull policy |
 | image.repository | string | `"docker.io/library/busybox"` | Image repository |

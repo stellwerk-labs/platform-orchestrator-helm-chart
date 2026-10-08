@@ -58,6 +58,37 @@ This grants framing only, without adding script or network permissions. Each
 plugin runtime must independently restrict `frame-ancestors` to the Console
 origin, and the host still validates every bridge message and operation.
 
+Plugin UIs must also stay outside the API's credentialed scope, so that only
+the Console can act with the user's session. IAM sets the session cookie with
+`Domain=` the API hostname (`global.gatewayApi.backend.hostname`), which sends
+it to that hostname and every subdomain, and the API's CORS policy answers the
+origins in `global.gatewayApi.backend.cors.allowOrigins` with credentials
+(`allowCredentials: true` by default). The chart therefore rejects a plugin UI origin on the API hostname or one of its
+subdomains (any port), and a plugin UI origin that an `allowOrigins` entry
+matches. Envoy Gateway turns each `*` of an entry into the regex `.*` and
+matches the whole origin, so the default `https://*.platform-orchestrator.local`
+admits every HTTPS origin under that domain without a port. Before adding plugin
+UI origins, list the exact Console origins, for example:
+
+```yaml
+global:
+  gatewayApi:
+    backend:
+      hostname: api.example.com
+      cors:
+        allowOrigins: ["https://console.example.com"]
+    frontend:
+      hostname: console.example.com
+console:
+  gatewayApi:
+    route:
+      pluginUiOrigins: ["https://rollouts.example-addons.com"]
+```
+
+A separate registrable domain for plugin UIs, as above, also keeps them from
+setting cookies for a parent domain they would share with the API. The CORS
+default stays unchanged for installations without plugin UIs.
+
 ## Plugin workload identity (v1alpha)
 
 Plugin workloads authenticate to Core with short-lived IAM tokens obtained by
