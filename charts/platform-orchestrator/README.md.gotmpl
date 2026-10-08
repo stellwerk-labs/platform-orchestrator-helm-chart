@@ -144,6 +144,48 @@ mount: roll IAM after the cluster rotates its signing keys.
 `PLUGIN_WORKLOAD_STATIC_TOKEN_ADAPTER: v1alpha` keeps static tokens of bound
 service users usable during a migration only; leave it empty in production.
 
+## Ordinary Deployment admission
+
+The Data Plane can ask Core to guard each ordinary Deployment against
+concurrent Pin changes before it commits it. Both profiles are off by default;
+enable them together:
+
+1. As a holder of `plugin_workload_binding_write`, create an IAM platform
+   principal with a static token (`POST /platform-principals`), or reuse the
+   plugin admission checker. It belongs to no organization, so one principal
+   serves every organization.
+2. Store its token as `core-bearer-token` in a Secret and enable
+   `data-plane.configurationProfiles.deploymentAdmission` with that Secret and
+   the authenticated HTTPS backend Gateway origin.
+3. Enable `control-plane.configurationProfiles.deploymentAdmission` with the
+   principal's UUID.
+
+```yaml
+control-plane:
+  configurationProfiles:
+    deploymentAdmission:
+      enabled: true
+      config:
+        DEPLOYMENT_ADMISSION_IDENTITY: "<data-plane-principal-uuid>"
+data-plane:
+  configurationProfiles:
+    deploymentAdmission:
+      enabled: true
+      config:
+        DEPLOYMENT_ADMISSION_CORE_GATEWAY_URL: https://api.example.com
+      secretFiles:
+        - name: deployment-admission-core-token
+          secretName: data-plane-admission-token-v1
+          key: core-bearer-token
+          mountPath: /var/run/secrets/stellwerk/deployment-admission/core-bearer-token
+```
+
+Core admits Deployments of every organization as this one identity, including
+organizations created later, so a new organization needs no change here and no
+restart. Core asks IAM on every callback and refuses any other identity with
+`403 deployment_admission_service_forbidden`. The token is a `subPath` mount:
+use a versioned Secret name and roll the Data Plane after a token rotation.
+
 ## Prerequisites
 
 - Kubernetes 1.27+

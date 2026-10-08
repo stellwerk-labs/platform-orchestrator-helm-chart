@@ -63,10 +63,22 @@ control-plane:
           name: platform-orchestrator-secrets
           key: natsAuthToken
 
-  # -- Native plugin gateway configuration. This profile is inert until an
-  # operator enables it and supplies all referenced Secrets. The signing key
-  # remains private to Core; plugin runtimes receive only its public key.
+  # -- Optional Control Plane profiles. Each is inert until an operator
+  # enables it and supplies its settings and referenced Secrets.
   configurationProfiles:
+    # -- Ordinary Deployment admission: Core guards each ordinary Deployment
+    # against concurrent Pin changes before the Data Plane commits it. Set
+    # `DEPLOYMENT_ADMISSION_IDENTITY` to the UUID of the Data Plane's IAM
+    # platform principal with a static token. The one identity serves every
+    # organization, including organizations created later, so adding an
+    # organization needs no change here. Enable together with
+    # `data-plane.configurationProfiles.deploymentAdmission`.
+    deploymentAdmission:
+      enabled: false
+      config:
+        DEPLOYMENT_ADMISSION_IDENTITY: ""
+      requiredConfig:
+        - DEPLOYMENT_ADMISSION_IDENTITY
     # -- Offline licence trust is consumed only by Core. This profile does
     # not enable plugins or grant IAM rights. The issuer's private key is never
     # mounted. Only the trust file is mounted: licence bundles are imported
@@ -82,6 +94,8 @@ control-plane:
           secretName: ""
           key: trust.json
           mountPath: /etc/stellwerk/entitlements/trust.json
+    # -- Native plugin gateway configuration. The signing key remains private
+    # to Core; plugin runtimes receive only its public key.
     nativePluginGateway:
       enabled: false
       config:
@@ -230,11 +244,33 @@ data-plane:
           name: platform-orchestrator-secrets
           key: runnerTokenSalt
 
-  # -- Native external-deployment admission. This profile is inert until an
-  # operator enables it and supplies the verifier and scoped service-token
-  # Secrets. The operator must provide the authenticated HTTPS backend Gateway
-  # origin; the admission endpoint is not public.
+  # -- Optional Data Plane profiles. Each is inert until an operator enables
+  # it and supplies its settings and referenced Secrets. The admission
+  # endpoints are not public: the operator provides the authenticated HTTPS
+  # backend Gateway origin.
   configurationProfiles:
+    # -- Ordinary Deployment admission: the Data Plane asks Core to guard each
+    # ordinary Deployment before it commits it, with the token of its IAM
+    # platform principal, the one that
+    # `control-plane.configurationProfiles.deploymentAdmission` names. The
+    # plugin admission checker can be the same principal and token. Enable
+    # together with the Control Plane profile.
+    deploymentAdmission:
+      enabled: false
+      config:
+        DEPLOYMENT_ADMISSION_CORE_GATEWAY_URL: ""
+        DEPLOYMENT_ADMISSION_CORE_BEARER_TOKEN_FILE: /var/run/secrets/stellwerk/deployment-admission/core-bearer-token
+      requiredConfig:
+        - DEPLOYMENT_ADMISSION_CORE_GATEWAY_URL
+      httpsOrigins:
+        - DEPLOYMENT_ADMISSION_CORE_GATEWAY_URL
+      secretFiles:
+        - name: deployment-admission-core-token
+          secretName: ""
+          key: core-bearer-token
+          mountPath: /var/run/secrets/stellwerk/deployment-admission/core-bearer-token
+    # -- Native external-deployment admission for plugin dispatches, with the
+    # verifier key and the plugin admission checker's token.
     nativeExternalDeployment:
       enabled: false
       config:

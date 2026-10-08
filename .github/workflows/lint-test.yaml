@@ -67,6 +67,9 @@ jobs:
       - name: Test native plugin Secret file mounts
         run: bash scripts/native-plugin-secret-files-contract_test.sh
 
+      - name: Test ordinary Deployment admission configuration
+        run: bash scripts/deployment-admission-contract_test.sh
+
       - name: Test offline plugin entitlement configuration
         run: bash scripts/plugin-entitlements-contract_test.sh
 
