@@ -107,7 +107,9 @@ for path in ("/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-
 for path in ("/auth/check-permissions", "/orgs/atlas/permissions",
              "/orgs/atlas/plugins/dev.example.optional-addon/capabilities", "/orgs/atlas/projects/store/users",
              "/orgs/atlas/projects/store/envs/prod/users/user-1/memberships",
-             "/auth/plugin-workload-token", "/plugin-workload-bindings", "/plugin-workload-bindings/binding-1"):
+             "/auth/plugin-workload-token", "/plugin-workload-bindings", "/plugin-workload-bindings/binding-1",
+             "/platform-principals", "/platform-principals/principal-1",
+             "/platform-principals/principal-1/actions/regenerate"):
     assert matches(iam, path) and not matches(cp, path) and not matches(dp, path), f"wrong IAM owner: {path}"
 
 for path in ("/internal/orgs/atlas/module-version-pins/pin-1/actions/override",
@@ -144,7 +146,9 @@ for path in ("/internal/orgs/atlas/module-version-pins/pin-1/actions/override",
 
 for path in ("/orgs/atlas/plugins/dev.example.optional-addon/capabilities/extra",
              "/orgs/atlas/plugins/dev.example.optional-addon/invoke",
-             "/auth/plugin-workload-token/extra", "/plugin-workload-bindings/binding-1/extra"):
+             "/auth/plugin-workload-token/extra", "/plugin-workload-bindings/binding-1/extra",
+             "/platform-principals/principal-1/extra", "/platform-principals/principal-1/actions/other",
+             "/platform-principals/principal-1/actions/regenerate/extra", "/platform-principalsx"):
     assert not matches(iam, path), f"unexpected public IAM route: {path}"
 
 # IAM's /internal/ API (gateway ext-auth, Core authorisation checks, workload
@@ -165,7 +169,7 @@ for name, (_, _, document) in routes.items():
             assert rewrites == [("replacePrefixMatch", "/internal/orgs")], (name, rewrites)
             continue
         for path in ("/internal/authenticate", "/internal/authorize",
-                     "/internal/plugin-workload-bindings", "/internal/orgs/atlas/members",
+                     "/internal/plugin-workload-bindings", "/internal/platform-principals", "/internal/orgs/atlas/members",
                      "/internal/orgs/atlas/module-version-pins/pin-1/actions/override"):
             assert not matches(rule_paths, path), f"IAM internal path exposed by {name}: {path}"
 assert set(iam_rules) == {False, True}, iam_rules

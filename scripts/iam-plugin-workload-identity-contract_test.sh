@@ -160,7 +160,9 @@ for docs in (defaults, enabled):
     assert len(patterns) == 1, patterns
     iam_path = re.compile(patterns[0])
     for path in ["/auth/plugin-workload-token", "/plugin-workload-bindings",
-                 "/plugin-workload-bindings/0199a0c1-1d6e-72f1-8000-000000000002"]:
+                 "/plugin-workload-bindings/0199a0c1-1d6e-72f1-8000-000000000002",
+                 "/platform-principals", "/platform-principals/0199a0c1-1d6e-72f1-8000-000000000003",
+                 "/platform-principals/0199a0c1-1d6e-72f1-8000-000000000003/actions/regenerate"]:
         assert iam_path.fullmatch(path), path
     for path in ["/auth/plugin-workload-token/extra", "/auth/plugin-workload-tokens",
                  "/auth/plugin-workload-token-other", "/plugin-workload-bindings/a/b",

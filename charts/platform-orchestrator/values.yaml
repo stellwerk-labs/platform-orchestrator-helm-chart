@@ -438,7 +438,7 @@ iam:
       matches:
         - path:
             type: RegularExpression
-            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
