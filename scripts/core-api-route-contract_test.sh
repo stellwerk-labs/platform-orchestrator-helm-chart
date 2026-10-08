@@ -90,6 +90,7 @@ for path in (
     "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome",
     "/plugin-packages", "/plugin-installations", "/plugin-installations/installation-1",
     "/plugin-installations/installation-1/identity", "/plugin-installations/installation-1/upgrade",
+    "/plugin-installations/installation-1/organization-mode",
     "/plugin-installations/installation-1/actions/activate",
     "/plugin-installations/installation-1/organizations/atlas", "/plugin-entitlement-bundles",
     "/plugin-audit-events",

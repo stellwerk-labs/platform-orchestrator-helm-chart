@@ -138,7 +138,7 @@ control-plane:
           value: "^/orgs/[^/]+/plugins/[^/]+/projects/[^/]+/envs/[^/]+/deployments/[^/]+/(logs|outputs)$"
       - path:
           type: RegularExpression
-          value: "^/(plugin-packages|plugin-installations(/[^/]+(/(identity|upgrade|actions/[^/]+|organizations/[^/]+))?)?|plugin-entitlement-bundles|plugin-audit-events)$"
+          value: "^/(plugin-packages|plugin-installations(/[^/]+(/(identity|upgrade|organization-mode|actions/[^/]+|organizations/[^/]+))?)?|plugin-entitlement-bundles|plugin-audit-events)$"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
