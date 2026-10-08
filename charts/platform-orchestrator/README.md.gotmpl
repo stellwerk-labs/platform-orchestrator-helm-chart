@@ -169,6 +169,12 @@ The generated shared NATS token is for local bootstrap. Production deployments
 should supply scoped internal service credentials with a defined issuance,
 rotation, and revocation process. Runners receive only HTTPS credentials.
 
+The NATS bootstrap Job creates or updates the JetStream streams and object
+stores. It belongs to the release: the completed Job stays, and Helm replaces
+it when the chart version or the Job's settings change. To run it again with
+unchanged settings, for example after it failed or after NATS lost its
+storage, delete the Job and run `helm upgrade` again.
+
 Set `data-plane.config.RUNNER_GATEWAY_URL` to the public HTTPS URL that ECS and
 other runners outside the cluster can reach. Keep
 `RUNNER_GATEWAY_INTERNAL_URL` on the namespace-qualified gateway Service for
