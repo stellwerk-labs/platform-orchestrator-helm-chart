@@ -53,7 +53,7 @@ service:
   port: 8080
   # targetPort: 8080
   # nodePort: null
-  # -- Create a headless service (required for data plane internal communication)
+  # -- Select headless mode for this Service, keeping its name (required for data plane internal communication)
   createHeadless: false
 
 # -- CPU/memory resource requests and limits

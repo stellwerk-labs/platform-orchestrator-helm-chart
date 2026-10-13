@@ -79,6 +79,9 @@ jobs:
       - name: Test backend startup budget
         run: bash scripts/backend-startup-contract_test.sh
 
+      - name: Test backend Service identity and headless mode
+        run: python3 scripts/backend-service-contract_test.py
+
       - name: Test chart release version validation
         run: bash scripts/chart-release-version_test.sh
 

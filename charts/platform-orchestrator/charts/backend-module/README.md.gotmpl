@@ -2,4 +2,11 @@
 
 {{ template "chart.description" . }}
 
+`service.createHeadless` selects headless mode for the single Service at the
+existing name (`type: ClusterIP`, `clusterIP: None`). It does not create an
+additional Service. When false, `service.type` applies normally. Changing mode
+on an existing Service requires an explicit operator-managed migration because
+Kubernetes does not allow its primary `clusterIP` to change in place. The chart
+does not delete or recreate Services automatically.
+
 {{ template "chart.valuesSection" . }}

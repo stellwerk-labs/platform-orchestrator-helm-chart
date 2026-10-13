@@ -179,7 +179,7 @@ data-plane:
 
   # -- Service configuration
   service:
-    # -- Create a headless service (required for internal data plane communication)
+    # -- Select headless mode for the existing data plane Service (required for internal communication)
     createHeadless: true
 
   # -- Configuration environment variables (injected via ConfigMap)

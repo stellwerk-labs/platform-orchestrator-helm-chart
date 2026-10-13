@@ -220,6 +220,15 @@ it when the chart version or the Job's settings change. To run it again with
 unchanged settings, for example after it failed or after NATS lost its
 storage, delete the Job and run `helm upgrade` again.
 
+Each backend renders one Service at its existing name. `service.createHeadless`
+selects headless mode (`type: ClusterIP`, `clusterIP: None`) for that Service;
+it does not create an additional Service. The Data Plane enables this by
+default, retaining its configured headless DNS name. With the flag disabled,
+the Service uses `service.type` normally. Changing mode on an existing Service
+requires an explicit operator-managed migration because Kubernetes does not
+allow its primary `clusterIP` to change in place. The chart does not delete or
+recreate Services automatically.
+
 Set `data-plane.config.RUNNER_GATEWAY_URL` to the public HTTPS URL that ECS and
 other runners outside the cluster can reach. Keep
 `RUNNER_GATEWAY_INTERNAL_URL` on the namespace-qualified gateway Service for
@@ -311,7 +320,7 @@ gateway URL with it.
 | control-plane.resources | object | `{}` | CPU/memory resource requests and limits |
 | control-plane.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container-level security context |
 | control-plane.service | object | `{"createHeadless":false,"port":8080,"type":"ClusterIP"}` | Service configuration |
-| control-plane.service.createHeadless | bool | `false` | Create a headless service (required for data plane internal communication) |
+| control-plane.service.createHeadless | bool | `false` | Select headless mode for this Service, keeping its name (required for data plane internal communication) |
 | control-plane.service.port | int | `8080` | Service port |
 | control-plane.service.type | string | `"ClusterIP"` | Service type |
 | control-plane.serviceAccount | object | `{"allowCreateToken":true}` | Service account configuration |
@@ -365,7 +374,7 @@ gateway URL with it.
 | data-plane.resources | object | `{}` | CPU/memory resource requests and limits |
 | data-plane.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container-level security context |
 | data-plane.service | object | `{"createHeadless":true}` | Service configuration |
-| data-plane.service.createHeadless | bool | `true` | Create a headless service (required for internal data plane communication) |
+| data-plane.service.createHeadless | bool | `true` | Select headless mode for the existing data plane Service (required for internal communication) |
 | data-plane.service.port | int | `8080` | Service port |
 | data-plane.service.type | string | `"ClusterIP"` | Service type |
 | data-plane.serviceAccount | object | `{"allowCreateToken":true}` | Service account configuration |
@@ -494,7 +503,7 @@ gateway URL with it.
 | iam.resources | object | `{}` | CPU/memory resource requests and limits |
 | iam.securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container-level security context |
 | iam.service | object | `{"createHeadless":false,"port":8080,"type":"ClusterIP"}` | Service configuration |
-| iam.service.createHeadless | bool | `false` | Create a headless service (required for data plane internal communication) |
+| iam.service.createHeadless | bool | `false` | Select headless mode for this Service, keeping its name (required for data plane internal communication) |
 | iam.service.port | int | `8080` | Service port |
 | iam.service.type | string | `"ClusterIP"` | Service type |
 | iam.serviceAccount | object | `{"allowCreateToken":false,"annotations":{},"create":true,"name":""}` | Service account configuration |

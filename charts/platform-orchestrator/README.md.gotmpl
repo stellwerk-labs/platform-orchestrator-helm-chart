@@ -220,6 +220,15 @@ it when the chart version or the Job's settings change. To run it again with
 unchanged settings, for example after it failed or after NATS lost its
 storage, delete the Job and run `helm upgrade` again.
 
+Each backend renders one Service at its existing name. `service.createHeadless`
+selects headless mode (`type: ClusterIP`, `clusterIP: None`) for that Service;
+it does not create an additional Service. The Data Plane enables this by
+default, retaining its configured headless DNS name. With the flag disabled,
+the Service uses `service.type` normally. Changing mode on an existing Service
+requires an explicit operator-managed migration because Kubernetes does not
+allow its primary `clusterIP` to change in place. The chart does not delete or
+recreate Services automatically.
+
 Set `data-plane.config.RUNNER_GATEWAY_URL` to the public HTTPS URL that ECS and
 other runners outside the cluster can reach. Keep
 `RUNNER_GATEWAY_INTERNAL_URL` on the namespace-qualified gateway Service for

@@ -5,7 +5,12 @@ metadata:
   labels:
     {{- include "backend-module.labels" . | nindent 4 }}
 spec:
+  {{- if .Values.service.createHeadless }}
+  type: ClusterIP
+  clusterIP: None
+  {{- else }}
   type: {{ .Values.service.type }}
+  {{- end }}
   selector:
     {{- include "backend-module.selectorLabels" . | nindent 4 }}
   ports:
