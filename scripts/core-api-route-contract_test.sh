@@ -49,6 +49,7 @@ def matches(paths, path):
 for path in (
     "/orgs", "/orgs/atlas", "/orgs/atlas/envs",
     "/orgs/atlas/module-catalogue", "/orgs/atlas/modules/redis/catalogue",
+    "/orgs/atlas/module-versions/proposed", "/orgs/atlas_2/module-versions/proposed",
     "/orgs/atlas/modules/redis/versions/1.0.0",
     "/orgs/atlas/modules/redis/versions/1.0.0/compare/1.1.0",
     "/orgs/atlas/modules/redis/versions/1.1.0/actions/promote",
@@ -97,6 +98,13 @@ for path in (
 ):
     assert matches(cp, path), f"Core route missing: {path}"
     assert not matches(dp, path) and not matches(iam, path), f"ambiguous Core route: {path}"
+
+for path in ("/orgs//module-versions/proposed", "/orgs/atlas/other/module-versions/proposed",
+             "/orgs/atlas/module-versions/proposed/extra", "/orgs/atlas/module-versions/proposed/",
+             "/orgs/atlas/module-versions/proposed-extra", "/orgs/atlas/module-versions/other",
+             "/orgs/atlas/module-versions", "/internal/orgs/atlas/module-versions/proposed",
+             "/xorgs/atlas/module-versions/proposed"):
+    assert not any(matches(paths, path) for paths in (cp, dp, iam)), f"unexpected proposed-version route: {path}"
 
 for path in ("/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-logs",
              "/orgs/atlas/deployments/id/encrypted-outputs", "/orgs/atlas/active-resources",

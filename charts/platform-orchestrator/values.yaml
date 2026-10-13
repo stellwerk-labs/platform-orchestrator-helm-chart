@@ -140,6 +140,9 @@ control-plane:
           value: "/orgs($|/[^/]+($|/(envs|env-types|resource-types|module-providers|runners|runner-rules|modules|module-rules|module-catalogue|module-version-pins|module-version-lifecycle-transactions)($|/.*)|/plugins($|/[^/]+($|/invoke))|/projects($|/[^/]+($|/envs($|/[^/]+($|/(actions/refresh_runner|available-resource-types|deletion-impact)$))))))"
       - path:
           type: RegularExpression
+          value: "^/orgs/[^/]+/module-versions/proposed$"
+      - path:
+          type: RegularExpression
           value: "^/orgs/[^/]+/deployment-admissions/[^/]+(/(settle|seal-absence))?$"
       - path:
           type: RegularExpression
