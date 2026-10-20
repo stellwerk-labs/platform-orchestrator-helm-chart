@@ -11,7 +11,7 @@ helm template platform-orchestrator "$chart" >"$rendered"
 # The old IAM Pods must be gone before a Casbin binary migrates the shared
 # database, and the chart must point at the qualified IAM release.
 grep -q 'type: Recreate' "$rendered"
-grep -Fq 'image: "ghcr.io/stellwerk-labs/platform-orchestrator-iam:v2.4.0@sha256:0fb4b3645ae2d7ccf366921c8d9490a6862cce111bdcb683ef6afcc852b40331"' "$rendered"
+grep -Fq 'image: "ghcr.io/stellwerk-labs/platform-orchestrator-iam:v2.5.0-rc.3@sha256:29fec2eae6247b957f8c9c6ef66f9cf4254728b7ed0336675559c812687682f6"' "$rendered"
 
 # SpiceDB runtime resources and configuration must not return accidentally.
 if grep -Eq '# Source: .*/spicedb/|authzed/spicedb|SPICEDB_(URL|PRE_SHARED_KEY)' "$rendered"; then
