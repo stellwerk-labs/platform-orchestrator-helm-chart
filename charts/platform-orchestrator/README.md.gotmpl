@@ -2,11 +2,12 @@
 
 {{ template "chart.description" . }}
 
-Chart `0.7.0` adds Module Version Management, including immutable versions,
-lifecycle history and Environment Pins. It pins the coordinated application
-components by digest and retains the existing Casbin IAM, HTTPS Runner Gateway
-and NATS JetStream architecture. See the [release notes](../../docs/releases/v0.7.0.md)
-for the component versions, breaking authoring changes and recovery limits.
+Chart `0.8.0` adds the generic plugin foundation, ordinary Deployment admission
+and the deployment queue while retaining the Casbin IAM, HTTPS Runner Gateway
+and NATS JetStream architecture. Plugin and admission profiles remain disabled
+by default. See the [release notes](../../docs/releases/v0.8.0.md) for the breaking
+Data Plane default change, immutable component pins, required qualification and
+recovery limits.
 
 ## Architecture
 

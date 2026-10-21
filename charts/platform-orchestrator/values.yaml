@@ -24,7 +24,7 @@ control-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v3.1.0-rc.2@sha256:88ec47df97767592d310173bcd1f9ce9885ac25deb4f0db009364dd1881d66af
+    tag: v3.1.0@sha256:0f74067c878666d5ce61db43fc79549ac9db7a9227231b06ac20673eb2f0cbe0
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -178,7 +178,7 @@ data-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v4.0.0-rc.2@sha256:619594c1484a06d229ee861bfdcf8fe36a588aea8bea142095b9fdca1c8a616b
+    tag: v4.0.0@sha256:2a47d647db6678073c84f53a81b439567e5342db47dfc40d627cdec9059b2c11
 
   # -- Service configuration
   service:
@@ -359,7 +359,7 @@ iam:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-iam`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-iam
     # -- Image tag
-    tag: v2.5.0-rc.3@sha256:29fec2eae6247b957f8c9c6ef66f9cf4254728b7ed0336675559c812687682f6
+    tag: v2.5.0@sha256:ac75076598e15b98a04c6b7628f99abc2991f62b0e7df14c42a4785326305397
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -499,7 +499,7 @@ console:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
     # -- Image tag
-    tag: v1.4.0-rc.4@sha256:9bb61c142e21cfc92e45ac07f614e65e326510caffe047e34a78901fad9210c5
+    tag: v1.4.0@sha256:f14faaa52a9b028ed1f7e8194a787255c6c341cca0c86dcc7e72fb0abf71efd5
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
