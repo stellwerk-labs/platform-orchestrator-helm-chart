@@ -53,7 +53,7 @@ service:
   port: 8080
   # targetPort: 8080
   # nodePort: null
-  # -- Create a headless service (required for data plane internal communication)
+  # -- Select headless mode for this Service, keeping its name (required for data plane internal communication)
   createHeadless: false
 
 # -- CPU/memory resource requests and limits
@@ -89,6 +89,30 @@ envFromSecrets: []
 
 # -- Environment variables included in the ConfigMap
 config: {}
+
+# -- Disabled-by-default groups of ConfigMap values and operator-owned Secret
+# file mounts. A profile contributes nothing until `enabled` is true. Every
+# enabled Secret file requires a non-empty Secret name, key, and absolute mount
+# path; Helm rendering fails closed when any reference is incomplete. An
+# enabled profile with `serviceAccountIssuerDiscovery: true` mounts the pod's
+# ServiceAccount token and binds the ServiceAccount to the read-only ClusterRole
+# `system:service-account-issuer-discovery`.
+configurationProfiles: {}
+#  example:
+#    enabled: false
+#    config:
+#      FEATURE_ENABLED: "true"
+#      FEATURE_KEY_FILE: /var/run/secrets/example/key.pem
+#    requiredConfig:
+#      - FEATURE_ENABLED
+#    httpsOrigins:
+#      - FEATURE_PUBLIC_ORIGIN
+#    serviceAccountIssuerDiscovery: false
+#    secretFiles:
+#      - name: example-key
+#        secretName: example-operator-secret
+#        key: key.pem
+#        mountPath: /var/run/secrets/example/key.pem
 
 # -- OpenTelemetry configuration
 otel:

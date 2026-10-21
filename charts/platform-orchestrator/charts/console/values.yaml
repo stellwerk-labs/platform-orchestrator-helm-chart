@@ -75,6 +75,8 @@ config:
 # -- Gateway API HTTPRoute configuration (created when global Gateway API is enabled)
 gatewayApi:
   route:
+    # -- Exact HTTPS plugin UI origins allowed by Console CSP frame-src. Use separate DNS hostnames and optional non-default ports; wildcards, credentials, paths, queries, fragments, and duplicate origins are rejected, as are the Console hostname, the API hostname and its subdomains (they receive the session cookie) and origins that `global.gatewayApi.backend.cors.allowOrigins` matches. Empty keeps the stock policy.
+    pluginUiOrigins: []
     matches:
       - path:
           type: PathPrefix

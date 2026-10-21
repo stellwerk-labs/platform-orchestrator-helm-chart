@@ -2,12 +2,20 @@
 
 A Helm chart for deploying Platform Orchestrator backend module
 
+`service.createHeadless` selects headless mode for the single Service at the
+existing name (`type: ClusterIP`, `clusterIP: None`). It does not create an
+additional Service. When false, `service.type` applies normally. Changing mode
+on an existing Service requires an explicit operator-managed migration because
+Kubernetes does not allow its primary `clusterIP` to change in place. The chart
+does not delete or recreate Services automatically.
+
 ## Values
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Pod affinity rules |
 | config | object | `{}` | Environment variables included in the ConfigMap |
+| configurationProfiles | object | `{}` | Disabled-by-default groups of ConfigMap values and operator-owned Secret file mounts. A profile contributes nothing until `enabled` is true. Every enabled Secret file requires a non-empty Secret name, key, and absolute mount path; Helm rendering fails closed when any reference is incomplete. An enabled profile with `serviceAccountIssuerDiscovery: true` mounts the pod's ServiceAccount token and binds the ServiceAccount to the read-only ClusterRole `system:service-account-issuer-discovery`. |
 | env | list | `[]` | Additional environment variables (typically secret references) |
 | envFromSecrets | list | `[]` | Names of secrets to load as environment variables via envFrom |
 | gatewayApi | object | `{"route":{}}` | Gateway API HTTPRoute configuration (created when global Gateway API is enabled) |
@@ -27,7 +35,7 @@ A Helm chart for deploying Platform Orchestrator backend module
 | resources | object | `{}` | CPU/memory resource requests and limits |
 | securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}}` | Container-level security context |
 | service | object | `{"createHeadless":false,"port":8080,"type":"ClusterIP"}` | Service configuration |
-| service.createHeadless | bool | `false` | Create a headless service (required for data plane internal communication) |
+| service.createHeadless | bool | `false` | Select headless mode for this Service, keeping its name (required for data plane internal communication) |
 | service.port | int | `8080` | Service port |
 | service.type | string | `"ClusterIP"` | Service type |
 | serviceAccount | object | `{"allowCreateToken":false,"annotations":{},"create":true,"name":""}` | Service account configuration |

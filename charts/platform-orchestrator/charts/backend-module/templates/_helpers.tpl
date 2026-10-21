@@ -27,3 +27,14 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/name: {{ include "backend-module.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
+
+{{/*
+Whether an enabled configuration profile reads the cluster's ServiceAccount
+issuer discovery documents (OIDC configuration and JWKS) with the pod's own
+ServiceAccount token. Renders "true" or nothing.
+*/}}
+{{- define "backend-module.serviceAccountIssuerDiscovery" -}}
+{{- range $profile := .Values.configurationProfiles }}
+{{- if and $profile.enabled $profile.serviceAccountIssuerDiscovery }}true{{ end }}
+{{- end }}
+{{- end }}

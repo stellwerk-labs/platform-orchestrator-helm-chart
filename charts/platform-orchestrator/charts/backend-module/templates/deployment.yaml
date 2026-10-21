@@ -35,6 +35,9 @@ spec:
       {{- else if .Values.serviceAccount.name }}
       serviceAccountName: {{ .Values.serviceAccount.name }}
       {{- end }}
+      {{- if include "backend-module.serviceAccountIssuerDiscovery" . }}
+      automountServiceAccountToken: true
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -51,6 +54,30 @@ spec:
           {{- with .Values.env }}
           env:
             {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- $hasSecretFiles := false }}
+          {{- range $profileName, $profile := .Values.configurationProfiles }}
+            {{- if and $profile.enabled $profile.secretFiles }}
+              {{- $hasSecretFiles = true }}
+            {{- end }}
+          {{- end }}
+          {{- if $hasSecretFiles }}
+          volumeMounts:
+            {{- range $profileName, $profile := .Values.configurationProfiles }}
+            {{- if $profile.enabled }}
+            {{- range $secretFile := $profile.secretFiles }}
+              {{- $name := required (printf "configurationProfiles.%s.secretFiles[].name is required" $profileName) $secretFile.name }}
+              {{- $mountPath := required (printf "configurationProfiles.%s.secretFiles[%s].mountPath is required" $profileName $name) $secretFile.mountPath }}
+              {{- if not (hasPrefix "/" $mountPath) }}
+                {{- fail (printf "configurationProfiles.%s.secretFiles[%s].mountPath must be absolute" $profileName $name) }}
+              {{- end }}
+            - name: {{ $name }}
+              mountPath: {{ $mountPath | quote }}
+              subPath: secret-value
+              readOnly: true
+            {{- end }}
+            {{- end }}
+            {{- end }}
           {{- end }}
           ports:
             - name: http
@@ -74,3 +101,21 @@ spec:
               path: /health
               port: 8080
               scheme: HTTP
+      {{- if $hasSecretFiles }}
+      volumes:
+        {{- range $profileName, $profile := .Values.configurationProfiles }}
+        {{- if $profile.enabled }}
+        {{- range $secretFile := $profile.secretFiles }}
+          {{- $name := required (printf "configurationProfiles.%s.secretFiles[].name is required" $profileName) $secretFile.name }}
+          {{- $secretName := required (printf "configurationProfiles.%s.secretFiles[%s].secretName is required" $profileName $name) $secretFile.secretName }}
+          {{- $key := required (printf "configurationProfiles.%s.secretFiles[%s].key is required" $profileName $name) $secretFile.key }}
+        - name: {{ $name }}
+          secret:
+            secretName: {{ $secretName }}
+            items:
+              - key: {{ $key }}
+                path: secret-value
+        {{- end }}
+        {{- end }}
+        {{- end }}
+      {{- end }}

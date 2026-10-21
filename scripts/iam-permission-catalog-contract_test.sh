@@ -10,3 +10,6 @@ helm template platform-orchestrator "$chart" >"$rendered"
 # The public IAM route must expose the permission catalog used by the console
 # and API clients to construct custom roles.
 grep -Fq '(orgs/[^/]+/permissions)' "$rendered"
+# Capability reconciliation is a regular, authenticated IAM route. Keep it
+# exact so plugin backend and invocation paths cannot spill into IAM.
+grep -Fq '(orgs/[^/]+/plugins/[^/]+/capabilities)' "$rendered"

@@ -2,11 +2,12 @@
 
 {{ template "chart.description" . }}
 
-Chart `0.7.0` adds Module Version Management, including immutable versions,
-lifecycle history and Environment Pins. It pins the coordinated application
-components by digest and retains the existing Casbin IAM, HTTPS Runner Gateway
-and NATS JetStream architecture. See the [release notes](../../docs/releases/v0.7.0.md)
-for the component versions, breaking authoring changes and recovery limits.
+Chart `0.8.0` adds the generic plugin foundation, ordinary Deployment admission
+and the deployment queue while retaining the Casbin IAM, HTTPS Runner Gateway
+and NATS JetStream architecture. Plugin and admission profiles remain disabled
+by default. See the [release notes](../../docs/releases/v0.8.0.md) for the breaking
+Data Plane default change, immutable component pins, required qualification and
+recovery limits.
 
 ## Architecture
 
@@ -22,6 +23,169 @@ The chart deploys the following components:
 | **NATS JetStream** | `nats` | Durable command and event broker |
 | **Runner gateway** | runner image | Outbound HTTPS interface for agents and deployment Jobs |
 | **Keycloak** | `keycloak` | Identity provider and SSO |
+
+## Native plugin configuration
+
+The `control-plane.configurationProfiles.nativePluginEntitlements`
+profile is disabled by default and does not enable a plugin. When explicitly
+enabled alongside the native gateway, it mounts a public issuer trust document
+and signed offline licence bundle into Core. It never mounts an issuer private
+key and does not send these documents to the plugin, Data Plane, IAM or Console.
+Production mode rejects development trust. Development-mode installations must
+explicitly select `PLUGIN_ENTITLEMENT_MODE: development`.
+
+The existing `secretFiles` adapter uses read-only single-file `subPath` mounts.
+Keep the `/etc/stellwerk/entitlements` paths: the strict Core reader rejects
+symlinks, including projected-Secret directory paths and common `/var/run`
+aliases. Use versioned Secret names and roll Core after a trust or bundle
+change; `subPath` mounts do not refresh in place. Secrets contain only public
+issuer keys and signed documents, never the signing key. Expiry and revocation
+stop new work while preserving previously activated read and recovery access
+under the existing permissions.
+
+IAM authorises the Plugin Manager API. Name its operators as comma-separated
+user IDs in `iam.config.PLUGIN_MANAGER_WRITERS` (manage plugins, includes read)
+and `iam.config.PLUGIN_MANAGER_READERS` (read only). Both are empty by default,
+so nobody can manage plugins until they are set. IAM refuses to start if either
+lists a service user.
+
+Plugin pages also require an operator-reviewed Console CSP allowance. Set
+`console.gatewayApi.route.pluginUiOrigins` to the exact HTTPS origins declared
+by the installed plugins, for example `["https://addons.example.com"]`.
+The default empty list preserves the stock policy. Entries use separate DNS
+hostnames and optional non-default ports; wildcards, credentials, paths, query
+strings, fragments, duplicate origins and the Console hostname are rejected.
+This grants framing only, without adding script or network permissions. Each
+plugin runtime must independently restrict `frame-ancestors` to the Console
+origin, and the host still validates every bridge message and operation.
+
+Plugin UIs must also stay outside the API's credentialed scope, so that only
+the Console can act with the user's session. IAM sets the session cookie with
+`Domain=` the API hostname (`global.gatewayApi.backend.hostname`), which sends
+it to that hostname and every subdomain, and the API's CORS policy answers the
+origins in `global.gatewayApi.backend.cors.allowOrigins` with credentials
+(`allowCredentials: true` by default). The chart therefore rejects a plugin UI origin on the API hostname or one of its
+subdomains (any port), and a plugin UI origin that an `allowOrigins` entry
+matches. Envoy Gateway turns each `*` of an entry into the regex `.*` and
+matches the whole origin, so the default `https://*.platform-orchestrator.local`
+admits every HTTPS origin under that domain without a port. Before adding plugin
+UI origins, list the exact Console origins, for example:
+
+```yaml
+global:
+  gatewayApi:
+    backend:
+      hostname: api.example.com
+      cors:
+        allowOrigins: ["https://console.example.com"]
+    frontend:
+      hostname: console.example.com
+console:
+  gatewayApi:
+    route:
+      pluginUiOrigins: ["https://rollouts.example-addons.com"]
+```
+
+A separate registrable domain for plugin UIs, as above, also keeps them from
+setting cookies for a parent domain they would share with the API. The CORS
+default stays unchanged for installations without plugin UIs.
+
+## Plugin workload identity (v1alpha)
+
+Plugin workloads authenticate to Core with short-lived IAM tokens obtained by
+exchanging their projected Kubernetes ServiceAccount token, not with static
+service-user tokens. The exchange is off by default and the chart then renders
+no IAM configuration or RBAC for it. Enabling it needs an IAM image that
+contains the v1alpha workload token exchange.
+
+1. Enable `iam.configurationProfiles.pluginWorkloadIdentity` and set
+   `PLUGIN_WORKLOAD_TOKEN_ISSUER` to the cluster's ServiceAccount issuer, the
+   `issuer` field of `kubectl get --raw /.well-known/openid-configuration`.
+   Set `PLUGIN_WORKLOAD_BINDING_WRITERS` to the IAM principal ID of the
+   installation controller. Only listed principals hold the platform-level
+   permission `plugin_workload_binding_write`; organization roles cannot grant
+   it. IAM reads `https://kubernetes.default.svc/openid/v1/jwks` with its own
+   ServiceAccount token and the cluster CA. The chart mounts that token and
+   binds IAM's ServiceAccount to the built-in read-only ClusterRole
+   `system:service-account-issuer-discovery`, which Kubernetes also grants to
+   all ServiceAccounts by default; nothing else is granted.
+2. The plugin's identity is a platform principal: an IAM service user that
+   belongs to no organization and holds no roles, so one principal serves every
+   organization enabled for the installation. Create it together with its
+   binding in step 3. Service users that hold roles get no workload
+   credential, and organization service users cannot be bound. A principal
+   with a static token for the Data Plane admission checker is managed under
+   `/platform-principals` by holders of `plugin_workload_binding_write`.
+3. As the installation controller, create the binding with
+   `POST /plugin-workload-bindings` and `issuer`, `namespace`,
+   `service_account`, `audience`, `platform_principal` (`display_name`; or
+   `service_user_id` of an existing unbound platform principal), `plugin_id`
+   and `installation_id`, the UUID Core assigned with
+   `POST /plugin-installations`. A ServiceAccount and a service user each
+   have at most one binding. `DELETE /plugin-workload-bindings/{bindingId}`
+   revokes it; the next request with any token issued for it fails, and the
+   principal stays so a new binding can name it. Only
+   then record the principal on the installation with
+   `PUT /plugin-installations/{id}/identity`: Core refuses it with
+   `409 plugin_workload_binding_missing` unless IAM binds exactly that plugin
+   ID, installation UUID and platform principal.
+4. Run the plugin runtime under exactly that ServiceAccount with a projected
+   token volume whose `audience` equals the binding's `audience` (and no other
+   audience) and whose `expirationSeconds` is at most 600. The runtime posts it
+   to `POST /auth/plugin-workload-token` (RFC 8693 field names) and sends the
+   returned `PWT-` token as `Authorization: Bearer`. Tokens are valid for at
+   most `PLUGIN_WORKLOAD_TOKEN_TTL` (15 minutes) and never longer than the
+   projected token; a deleted Pod's token stays valid until it expires.
+
+Where IAM cannot reach the API server, export the key set with
+`kubectl get --raw /openid/v1/jwks`, store it as `jwks.json` in a Secret,
+enable `iam.configurationProfiles.pluginWorkloadStaticJWKS` with that Secret
+name and set `serviceAccountIssuerDiscovery: false`. The file is a `subPath`
+mount: roll IAM after the cluster rotates its signing keys.
+`PLUGIN_WORKLOAD_STATIC_TOKEN_ADAPTER: v1alpha` keeps static tokens of bound
+service users usable during a migration only; leave it empty in production.
+
+## Ordinary Deployment admission
+
+The Data Plane can ask Core to guard each ordinary Deployment against
+concurrent Pin changes before it commits it. Both profiles are off by default;
+enable them together:
+
+1. As a holder of `plugin_workload_binding_write`, create an IAM platform
+   principal with a static token (`POST /platform-principals`), or reuse the
+   plugin admission checker. It belongs to no organization, so one principal
+   serves every organization.
+2. Store its token as `core-bearer-token` in a Secret and enable
+   `data-plane.configurationProfiles.deploymentAdmission` with that Secret and
+   the authenticated HTTPS backend Gateway origin.
+3. Enable `control-plane.configurationProfiles.deploymentAdmission` with the
+   principal's UUID.
+
+```yaml
+control-plane:
+  configurationProfiles:
+    deploymentAdmission:
+      enabled: true
+      config:
+        DEPLOYMENT_ADMISSION_IDENTITY: "<data-plane-principal-uuid>"
+data-plane:
+  configurationProfiles:
+    deploymentAdmission:
+      enabled: true
+      config:
+        DEPLOYMENT_ADMISSION_CORE_GATEWAY_URL: https://api.example.com
+      secretFiles:
+        - name: deployment-admission-core-token
+          secretName: data-plane-admission-token-v1
+          key: core-bearer-token
+          mountPath: /var/run/secrets/stellwerk/deployment-admission/core-bearer-token
+```
+
+Core admits Deployments of every organization as this one identity, including
+organizations created later, so a new organization needs no change here and no
+restart. Core asks IAM on every callback and refuses any other identity with
+`403 deployment_admission_service_forbidden`. The token is a `subPath` mount:
+use a versioned Secret name and roll the Data Plane after a token rotation.
 
 ## Prerequisites
 
@@ -50,6 +214,21 @@ before upgrading from a SpiceDB-based release.
 The generated shared NATS token is for local bootstrap. Production deployments
 should supply scoped internal service credentials with a defined issuance,
 rotation, and revocation process. Runners receive only HTTPS credentials.
+
+The NATS bootstrap Job creates or updates the JetStream streams and object
+stores. It belongs to the release: the completed Job stays, and Helm replaces
+it when the chart version or the Job's settings change. To run it again with
+unchanged settings, for example after it failed or after NATS lost its
+storage, delete the Job and run `helm upgrade` again.
+
+Each backend renders one Service at its existing name. `service.createHeadless`
+selects headless mode (`type: ClusterIP`, `clusterIP: None`) for that Service;
+it does not create an additional Service. The Data Plane enables this by
+default, retaining its configured headless DNS name. With the flag disabled,
+the Service uses `service.type` normally. Changing mode on an existing Service
+requires an explicit operator-managed migration because Kubernetes does not
+allow its primary `clusterIP` to change in place. The chart does not delete or
+recreate Services automatically.
 
 Set `data-plane.config.RUNNER_GATEWAY_URL` to the public HTTPS URL that ECS and
 other runners outside the cluster can reach. Keep

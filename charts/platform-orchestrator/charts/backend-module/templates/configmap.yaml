@@ -26,6 +26,22 @@ data:
   {{- with .Values.config }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
+  {{- range $profileName, $profile := .Values.configurationProfiles }}
+  {{- if $profile.enabled }}
+  {{- range $key := $profile.requiredConfig }}
+  {{- $value := required (printf "configurationProfiles.%s.config.%s is required" $profileName $key) (index $profile.config $key) }}
+  {{- end }}
+  {{- range $key := $profile.httpsOrigins }}
+  {{- $value := required (printf "configurationProfiles.%s.config.%s is required" $profileName $key) (index $profile.config $key) }}
+  {{- if not (regexMatch "^https://[^/?#]+/?$" $value) }}
+  {{- fail (printf "configurationProfiles.%s.config.%s must be an HTTPS origin" $profileName $key) }}
+  {{- end }}
+  {{- end }}
+  {{- with $profile.config }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
   {{- with .Values.global.config }}
   {{- toYaml . | nindent 2 }}
   {{- end }}

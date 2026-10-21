@@ -1,5 +1,6 @@
 *.tgz
 *.lock
+!charts/platform-orchestrator/Chart.lock
 test-credentials.json
 kubeconfig.yaml
 openbao-keys.json

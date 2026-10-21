@@ -31,6 +31,8 @@ jobs:
 
       - name: Set up Helm
         uses: azure/setup-helm@59b1c81c6280f5abebb1fb1bc585696daa7dfb42 # v5
+        with:
+          version: v4.3.0
 
       - name: Add NATS chart repository
         run: helm repo add nats https://nats-io.github.io/k8s/helm/charts/
@@ -61,8 +63,26 @@ jobs:
       - name: Test Core API route ownership
         run: bash scripts/core-api-route-contract_test.sh
 
+      - name: Test Console plugin UI Content Security Policy
+        run: python3 scripts/console-plugin-ui-csp-contract_test.py
+
+      - name: Test native plugin Secret file mounts
+        run: bash scripts/native-plugin-secret-files-contract_test.sh
+
+      - name: Test ordinary Deployment admission configuration
+        run: bash scripts/deployment-admission-contract_test.sh
+
+      - name: Test offline plugin entitlement configuration
+        run: bash scripts/plugin-entitlements-contract_test.sh
+
+      - name: Test IAM plugin workload identity configuration
+        run: bash scripts/iam-plugin-workload-identity-contract_test.sh
+
       - name: Test backend startup budget
         run: bash scripts/backend-startup-contract_test.sh
+
+      - name: Test backend Service identity and headless mode
+        run: python3 scripts/backend-service-contract_test.py
 
       - name: Test chart release version validation
         run: bash scripts/chart-release-version_test.sh

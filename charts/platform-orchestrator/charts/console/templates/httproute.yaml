@@ -1,3 +1,67 @@
+{{- $pluginUiSources := "" -}}
+{{- $pluginUiOrigins := .Values.gatewayApi.route.pluginUiOrigins -}}
+{{- if not (kindIs "slice" $pluginUiOrigins) -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins must be a list of exact HTTPS origins" -}}
+{{- end -}}
+{{- /*
+Plugin UIs stay outside the API's credentialed scope. IAM scopes the session
+cookie to the API hostname, so that hostname and all its subdomains receive
+it, and the API's CORS policy admits the origins it matches, with credentials
+by default. Envoy Gateway turns each "*" of an allowed origin into the regex
+".*" and matches the whole Origin: "https://*.example.com" also admits
+"https://a.b.example.com", but not "https://a.example.com:8443".
+*/ -}}
+{{- $consoleHost := lower .Values.global.gatewayApi.frontend.hostname -}}
+{{- $apiHost := lower .Values.global.gatewayApi.backend.hostname -}}
+{{- $apiCorsOrigins := dig "cors" "allowOrigins" (list) .Values.global.gatewayApi.backend -}}
+{{- $seen := dict -}}
+{{- range $origin := $pluginUiOrigins -}}
+{{- if not (kindIs "string" $origin) -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins entries must be exact HTTPS origins" -}}
+{{- end -}}
+{{- if not (regexMatch "^https://[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*(:[1-9][0-9]{0,4})?$" $origin) -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins entries must be exact HTTPS origins with DNS hostnames and optional ports, without wildcards, credentials, paths, queries, or fragments" -}}
+{{- end -}}
+{{- $host := trimPrefix "https://" $origin -}}
+{{- $hostname := regexReplaceAll ":[0-9]+$" $host "" -}}
+{{- if gt (len $hostname) 253 -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins hostname is too long" -}}
+{{- end -}}
+{{- if regexMatch "^[0-9.]+$" $hostname -}}
+{{- if not (regexMatch "^(0|[1-9][0-9]{0,2})(\\.(0|[1-9][0-9]{0,2})){3}$" $hostname) -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins IPv4 addresses must use canonical dotted decimal" -}}
+{{- end -}}
+{{- range $octet := splitList "." $hostname -}}
+{{- if gt (atoi $octet) 255 -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins IPv4 octets must be between 0 and 255" -}}
+{{- end -}}
+{{- end -}}
+{{- else if regexMatch "^([0-9]+|0x[0-9a-f]*)$" (last (splitList "." $hostname)) -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins DNS hostnames must not end in a numeric label" -}}
+{{- end -}}
+{{- if contains ":" $host -}}
+{{- $port := atoi (last (splitList ":" $host)) -}}
+{{- if or (gt $port 65535) (eq $port 443) -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins ports must be between 1 and 65535; omit the default HTTPS port 443" -}}
+{{- end -}}
+{{- end -}}
+{{- if eq $hostname $consoleHost -}}
+{{- fail (printf "console.gatewayApi.route.pluginUiOrigins entry %q uses the Console hostname %q (global.gatewayApi.frontend.hostname); serve each plugin UI from a hostname of its own" $origin $consoleHost) -}}
+{{- end -}}
+{{- if or (eq $hostname $apiHost) (hasSuffix (printf ".%s" $apiHost) $hostname) -}}
+{{- fail (printf "console.gatewayApi.route.pluginUiOrigins entry %q uses the API hostname %q (global.gatewayApi.backend.hostname) or a subdomain of it, which receive the user's session cookie; serve plugin UIs from a hostname outside the API hostname" $origin $apiHost) -}}
+{{- end -}}
+{{- range $allowed := $apiCorsOrigins -}}
+{{- if regexMatch (printf "^%s$" (regexQuoteMeta $allowed | replace "\\*" ".*")) $origin -}}
+{{- fail (printf "console.gatewayApi.route.pluginUiOrigins entry %q matches global.gatewayApi.backend.cors.allowOrigins entry %q, so the API's CORS policy admits the plugin UI; list the exact Console origins in global.gatewayApi.backend.cors.allowOrigins, or serve plugin UIs from a domain that no entry matches" $origin $allowed) -}}
+{{- end -}}
+{{- end -}}
+{{- if hasKey $seen $origin -}}
+{{- fail "console.gatewayApi.route.pluginUiOrigins must not contain duplicate origins" -}}
+{{- end -}}
+{{- $_ := set $seen $origin true -}}
+{{- $pluginUiSources = printf "%s %s" $pluginUiSources $origin -}}
+{{- end -}}
 {{- if .Values.global.gatewayApi.enabled }}
 {{- $fullname := include "console.fullname" . -}}
 {{- with .Values.gatewayApi.route }}
@@ -34,7 +98,7 @@ spec:
               - name: X-Frame-Options
                 value: "DENY"
               - name: Content-Security-Policy
-                value: "script-src 'self' 'unsafe-inline' 'unsafe-eval' accounts.google.com https://hcaptcha.com https://*.hcaptcha.com https://*.wistia.com https://*.wistia.net; frame-src accounts.google.com https://hcaptcha.com https://*.hcaptcha.com; worker-src blob:;"
+                value: {{ printf "script-src 'self' 'unsafe-inline' 'unsafe-eval' accounts.google.com https://hcaptcha.com https://*.hcaptcha.com https://*.wistia.com https://*.wistia.net; frame-src accounts.google.com https://hcaptcha.com https://*.hcaptcha.com%s; worker-src blob:;" $pluginUiSources | quote }}
     {{- end }}
 {{- end }}
 {{- end }}
