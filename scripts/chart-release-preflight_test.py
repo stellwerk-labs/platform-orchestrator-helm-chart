@@ -3,7 +3,9 @@
 import importlib.util
 from pathlib import Path
 import re
+import shutil
 import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -122,6 +124,39 @@ class WorkflowContractTests(unittest.TestCase):
     def test_validator_is_part_of_reusable_ci(self):
         lint = (ROOT / ".github/workflows/lint-test.yaml").read_text()
         self.assertIn("run: python3 scripts/chart-release-preflight_test.py", lint)
+
+    def test_release_and_reusable_ci_pin_the_qualified_helm_version(self):
+        for name in ("release-chart.yaml", "lint-test.yaml"):
+            workflow = (ROOT / ".github/workflows" / name).read_text()
+            self.assertEqual(workflow.count("uses: azure/setup-helm@"), 1)
+            self.assertIn("uses: azure/setup-helm@59b1c81c6280f5abebb1fb1bc585696daa7dfb42 # v5\n"
+                          "        with:\n          version: v4.3.0", workflow)
+
+    def test_original_nats_archive_and_bitflip_through_actual_publication_guard(self):
+        release = self.jobs["release"]
+        checksum = next(line.strip() for line in release.splitlines() if "sha256sum --check --strict" in line)
+        self.assertIn("eef3229caa732b4c1a2f5da990d4fa142504acd44145c71a39cfc4caefd85e00", checksum)
+        self.assertLess(release.index("helm dependency build"), release.index(checksum))
+        self.assertLess(release.index("git diff --exit-code -- charts/platform-orchestrator/Chart.lock"), release.index(checksum))
+        self.assertLess(release.index(checksum), release.index("helm package"))
+        relative = Path("charts/platform-orchestrator/charts/nats-2.14.0.tgz")
+        original = ROOT / relative
+        self.assertTrue(original.is_file() and not original.is_symlink())
+        with tempfile.TemporaryDirectory(prefix="chart-release-nats-") as directory:
+            copied = Path(directory) / relative
+            copied.parent.mkdir(parents=True)
+            shutil.copyfile(original, copied)
+            self.assertNotEqual((original.stat().st_dev, original.stat().st_ino),
+                                (copied.stat().st_dev, copied.stat().st_ino))
+            result = subprocess.run(["bash", "-euo", "pipefail", "-c", checksum], cwd=directory,
+                                    capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            raw = copied.read_bytes()
+            copied.write_bytes(bytes([raw[0] ^ 1]) + raw[1:])
+            result = subprocess.run(["bash", "-euo", "pipefail", "-c", checksum], cwd=directory,
+                                    capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn(b"FAILED", result.stdout)
 
 
 if __name__ == "__main__":
