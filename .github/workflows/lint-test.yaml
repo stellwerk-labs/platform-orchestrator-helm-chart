@@ -48,6 +48,9 @@ jobs:
       - name: Run chart-testing
         run: ct lint --all --config .ct.yaml
 
+      - name: Test GatewayClass external traffic policy
+        run: python3 scripts/gatewayclass-external-traffic-policy-contract_test.py
+
       - name: Test runner gateway contract
         run: bash scripts/runner-gateway_test.sh
 

@@ -12,6 +12,18 @@ as required when its release and the Orchestrator use different namespaces.
 Its default server image now points to the Keycloak server, separately from the
 Operator's own image.
 
+GatewayClass chart 0.1.1 adds optional `service.externalTrafficPolicy` for NodePort
+and LoadBalancer services. Leaving it empty preserves Envoy Gateway's default.
+`Local` preserves client source IPs and needs a ready proxy on every node that
+receives external traffic. `Cluster` forwards to ready proxies on other nodes
+and can change the source IP seen by the proxy. Choose the policy for the
+installation's ingress path and IP-based rules.
+
+A single proxy can move to another node during an upgrade. With `Local`, a
+public NodePort on a node without that proxy then drops traffic even when the
+Deployment is Ready and xDS reports no errors. Verify the real external HTTP and
+TLS paths after a proxy replacement. This behavior predates Envoy Gateway 1.9.
+
 Back up the Keycloak database and configuration before upgrading. Moving from
 26.0.x to 26.8.x requires a server stop and database migration. A one-instance
 StatefulSet update stops the old Pod before starting the new one. Do not run old
