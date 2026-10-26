@@ -92,3 +92,6 @@ jobs:
 
       - name: Test NATS bootstrap contract
         run: bash scripts/nats-bootstrap-contract_test.sh
+
+      - name: Test Keycloak upgrade and cross-namespace Operator contract
+        run: python3 scripts/keycloak-upgrade-contract_test.py

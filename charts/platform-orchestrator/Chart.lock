@@ -19,6 +19,6 @@ dependencies:
   version: 2.14.0
 - name: keycloak
   repository: ""
-  version: 0.1.0
-digest: sha256:67312243b9fc8e756a31aeeb6fc6dbb1a575928676d6bd22612cfe36b19f082d
-generated: "2026-10-21T11:20:19.652807+02:00"
+  version: 0.1.1
+digest: sha256:97c01646121d13608985f511fcd20f79008984e5b0dc9b1c4072be5c7056a176
+generated: "2026-10-26T12:05:28.795162+01:00"

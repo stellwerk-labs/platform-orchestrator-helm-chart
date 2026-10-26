@@ -9,6 +9,11 @@ by default. See the [release notes](../../docs/releases/v0.8.0.md) for the break
 Data Plane default change, immutable component pins, required qualification and
 recovery limits.
 
+The unreleased security maintenance update moves Keycloak and its Operator to
+26.8.1. Back up and test restoration of the Keycloak database before upgrading.
+Returning to an older server requires restoring its database too; Helm rollback
+alone is insufficient. See the [security maintenance guide](../../docs/security-maintenance.md).
+
 ## Architecture
 
 The chart deploys the following components:
@@ -522,9 +527,9 @@ gateway URL with it.
 | keycloak.hostname | object | `{"admin":"","hostname":""}` | Hostname configuration |
 | keycloak.hostname.admin | string | `""` | Admin console hostname (defaults to the public hostname) |
 | keycloak.hostname.hostname | string | `""` | Public hostname for Keycloak (auto-derived from gateway config if empty) |
-| keycloak.image | object | `{"repository":"quay.io/keycloak/keycloak","tag":"26.0.5"}` | Container image configuration |
+| keycloak.image | object | `{"repository":"quay.io/keycloak/keycloak","tag":"26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244"}` | Container image configuration |
 | keycloak.image.repository | string | `"quay.io/keycloak/keycloak"` | Image repository |
-| keycloak.image.tag | string | `"26.0.5"` | Image tag |
+| keycloak.image.tag | string | `"26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244"` | Image tag |
 | keycloak.instances | int | `1` | Number of Keycloak instances |
 | keycloak.resources | object | `{}` | CPU/memory resource requests and limits |
 | messagingBootstrap.enabled | bool | `true` | Provision immutable JetStream streams and the encrypted runner-log object bucket. |
