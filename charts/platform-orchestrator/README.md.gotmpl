@@ -9,6 +9,11 @@ by default. See the [release notes](../../docs/releases/v0.8.0.md) for the break
 Data Plane default change, immutable component pins, required qualification and
 recovery limits.
 
+The unreleased security maintenance update moves Keycloak and its Operator to
+26.8.1. Back up and test restoration of the Keycloak database before upgrading.
+Returning to an older server requires restoring its database too; Helm rollback
+alone is insufficient. See the [security maintenance guide](../../docs/security-maintenance.md).
+
 ## Architecture
 
 The chart deploys the following components:

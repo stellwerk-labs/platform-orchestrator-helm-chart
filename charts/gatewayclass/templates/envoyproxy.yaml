@@ -1,3 +1,17 @@
+{{- $serviceType := .Values.service.type -}}
+{{- $trafficPolicy := get .Values.service "externalTrafficPolicy" -}}
+{{- if not (has $serviceType (list "ClusterIP" "NodePort" "LoadBalancer")) -}}
+{{- fail "service.type must be ClusterIP, NodePort, or LoadBalancer" -}}
+{{- end -}}
+{{- if not (kindIs "string" $trafficPolicy) -}}
+{{- fail "service.externalTrafficPolicy must be empty, Cluster, or Local" -}}
+{{- end -}}
+{{- if and $trafficPolicy (not (has $trafficPolicy (list "Cluster" "Local"))) -}}
+{{- fail "service.externalTrafficPolicy must be empty, Cluster, or Local" -}}
+{{- end -}}
+{{- if and $trafficPolicy (eq $serviceType "ClusterIP") -}}
+{{- fail "service.externalTrafficPolicy requires NodePort or LoadBalancer" -}}
+{{- end -}}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: EnvoyProxy
 metadata:
@@ -8,7 +22,10 @@ spec:
     type: Kubernetes
     kubernetes:
       envoyService:
-        type: {{ .Values.service.type }}
+        type: {{ $serviceType }}
+        {{- if $trafficPolicy }}
+        externalTrafficPolicy: {{ $trafficPolicy }}
+        {{- end }}
         {{- if eq .Values.service.type "NodePort" }}
         patch:
           type: StrategicMerge

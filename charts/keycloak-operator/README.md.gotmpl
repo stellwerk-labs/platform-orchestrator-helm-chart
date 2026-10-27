@@ -1,0 +1,15 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.valuesSection" . }}
+
+## Upgrading
+
+The Operator and default server images are pinned separately. Existing Keycloak
+resources can keep their explicit server image while the Operator is upgraded.
+The chart watches all namespaces and binds its controllers to the ServiceAccount
+in the release namespace.
+
+Back up and rehearse restoration of the Keycloak database before changing the
+server version. See the [security maintenance guide](../../docs/security-maintenance.md).

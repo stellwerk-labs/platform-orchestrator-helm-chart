@@ -11,7 +11,7 @@ image:
   # -- Image repository
   repository: quay.io/keycloak/keycloak
   # -- Image tag
-  tag: "26.0.5"
+  tag: "26.8.1@sha256:79c623a22abacf3fe6c00a5fb30f5b7843d717b234033b80995891c06116d244"
 
 # -- Hostname configuration
 hostname:

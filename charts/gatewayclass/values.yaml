@@ -8,6 +8,12 @@ service:
   # Service type: ClusterIP, NodePort, or LoadBalancer
   type: ClusterIP
 
+  # -- Optional external traffic policy for NodePort or LoadBalancer.
+  # Cluster reaches proxy pods on other nodes; Local preserves client IP but
+  # requires a proxy pod on the node receiving traffic. Empty keeps Envoy
+  # Gateway's default behavior.
+  externalTrafficPolicy: ""
+
   # NodePort configuration (only used when type is NodePort)
   nodePorts:
     http: 30080
