@@ -29,7 +29,7 @@ control-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v3.2.0-rc.2@sha256:b6ed971f9a236ec1b0efa38906d81d2dc454f35496b877c845268669ccc1dfa3
+    tag: v3.2.0@sha256:c1bed2510799230823fbcfd203e095b5ff703d253ca1cd1b0b7505c7c095a59e
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -208,7 +208,7 @@ data-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v4.1.0-rc.2@sha256:8535b1ccd258f4e9aedcd0496a0a49f3e5393de41a0c4d9594db8749e31c76bd
+    tag: v4.1.0@sha256:58aa4afd98d747ce8aaca42f3ebaeee8e968f40d9749c2bc053d5b16cd5385ec
 
   # -- Service configuration
   service:
@@ -537,7 +537,7 @@ console:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
     # -- Image tag
-    tag: v1.5.0-rc.1@sha256:1a9d589940cd3e4f01ca742af3d7e74aa1d916f79ae548da1a42476272632834
+    tag: v1.5.0@sha256:3db1f2ab9326cbe37a6814b2405d3d4482e9653bb6583cf1ccd11ce74ae7c9f9
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
