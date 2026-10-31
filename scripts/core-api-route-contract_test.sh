@@ -24,7 +24,7 @@ for document in documents:
     name = re.search(r"^  name: (\S+)$", document, re.M).group(1)
     backends = re.findall(r"backendRefs:\s*\n\s*- name: (\S+)", document)
     paths = []
-    for kind, value in re.findall(r"- path:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", document):
+    for kind, value in re.findall(r"\bpath:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", document):
         paths.append((kind, value.strip().strip("\"'")))
     routes[name] = (backends, paths, document)
 
@@ -36,7 +36,7 @@ def route(service):
     return paths, document
 
 cp, cp_document = route("control-plane")
-dp, _ = route("data-plane")
+dp, dp_document = route("data-plane")
 iam, _ = route("iam")
 oidc, _ = route("data-plane-oidc")
 
@@ -48,6 +48,12 @@ def matches(paths, path):
 
 for path in (
     "/orgs", "/orgs/atlas", "/orgs/atlas/envs",
+    "/internal/orgs/atlas/projects/store/envs/prod/module-execution-catalogue",
+    "/orgs/atlas/modules/redis/drafts",
+    "/orgs/atlas/modules/redis/drafts/draft-1/revisions/2",
+    "/orgs/atlas/projects/store/envs/prod/modules/redis/drafts/draft-1/test-snapshots",
+    "/orgs/atlas/projects/store/envs/prod/modules/redis/draft-test-snapshots/test-1",
+    "/orgs/atlas/resource-types/database/versions/2",
     "/orgs/atlas/module-catalogue", "/orgs/atlas/modules/redis/catalogue",
     "/orgs/atlas/module-versions/proposed", "/orgs/atlas_2/module-versions/proposed",
     "/orgs/atlas/modules/redis/versions/1.0.0",
@@ -106,7 +112,7 @@ for path in ("/orgs//module-versions/proposed", "/orgs/atlas/other/module-versio
              "/xorgs/atlas/module-versions/proposed"):
     assert not any(matches(paths, path) for paths in (cp, dp, iam)), f"unexpected proposed-version route: {path}"
 
-for path in ("/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-logs",
+for path in ("/orgs/atlas/module-test-deployments", "/orgs/atlas/deployments", "/orgs/atlas/deployments/id/actions/get-logs",
              "/orgs/atlas/deployments/id/encrypted-outputs", "/orgs/atlas/active-resources",
              "/orgs/atlas/last-deployments", "/orgs/atlas/metadata-keys",
              "/orgs/atlas/deployment-queue", "/orgs/atlas/deployment-queue/item-1",
@@ -160,6 +166,27 @@ for path in ("/orgs/atlas/plugins/dev.example.optional-addon/capabilities/extra"
              "/platform-principals/principal-1/actions/regenerate/extra", "/platform-principalsx"):
     assert not matches(iam, path), f"unexpected public IAM route: {path}"
 
+# The runtime catalogue is the only new internal path admitted through the
+# authenticated gateway. Ordinary internal APIs remain cluster-only.
+for path in ("/internal/orgs/atlas/projects/store/envs/prod/module-catalogue",
+             "/internal/orgs/atlas/projects/store/envs/prod/module-execution-catalogue/extra",
+             "/internal/orgs/atlas/projects/store/module-execution-catalogue",
+             "/internal/orgs/atlas", "/internal/authenticate", "/internal/authorize"):
+    assert not matches(cp, path) and not matches(dp, path), f"internal path exposed: {path}"
+for path in ("/orgs/atlas/projects/store/envs/prod/modules/redis/drafts/draft-1/test-snapshots/extra",
+             "/orgs/atlas/projects/store/envs/prod/modules/redis/draft-test-snapshots/test-1/extra",
+             "/orgs/atlas/module-test-deployments/extra", "/orgs/atlas/module-test-deploymentsx"):
+    assert not matches(cp, path) and not matches(dp, path), f"test path widened: {path}"
+for document, suffix in ((cp_document, "module-execution-catalogue$"),
+                         (dp_document, "module-test-deployments$")):
+    match = re.search(r'- method: (\w+)\n\s+path:\n\s+type: RegularExpression\n\s+value: [^\n]*' + re.escape(suffix), document)
+    assert match and match.group(1) == "POST", f"test mutation must use POST: {suffix}"
+
+for document, suffix in ((cp_document, "test-snapshots$"),
+                         (cp_document, "draft-test-snapshots/[^/]+$"),
+                         (dp_document, "module-test-deployments$")):
+    assert re.search(r'- method: OPTIONS\n\s+path:\n\s+type: RegularExpression\n\s+value: [^\n]*' + re.escape(suffix), document), f"browser preflight missing: {suffix}"
+
 # IAM's /internal/ API (gateway ext-auth, Core authorisation checks, workload
 # binding lookups) is cluster-only. Every rendered rule that reaches IAM either
 # matches public paths only or is the admin rule mapping /admin/orgs onto
@@ -170,7 +197,7 @@ for name, (_, _, document) in routes.items():
         if not re.search(r"- name: platform-orchestrator-iam$", rule, re.M):
             continue
         rule_paths = [(kind, value.strip().strip("\"'")) for kind, value in
-                      re.findall(r"- path:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", rule)]
+                      re.findall(r"\bpath:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", rule)]
         rewrites = re.findall(r"(replacePrefixMatch|replaceFullPath): (\S+)", rule)
         iam_rules.append(bool(rewrites))
         if rewrites or "URLRewrite" in rule:

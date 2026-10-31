@@ -19,12 +19,17 @@
 # The control plane manages organizations, projects, environments, modules,
 # and runners. It is deployed as a backend-module subchart.
 control-plane:
+  # -- Stop the old Control Plane before starting a new version so database
+  # migrations never run beside an older writer during upgrades.
+  strategy:
+    type: Recreate
+
   # -- Container image for the control plane
   image:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v3.1.1@sha256:84d9da2f4d2319e352d549fb44a8f6fdb8f36a26c9e7251f3780df31951a4c72
+    tag: v3.2.0-rc.2@sha256:b6ed971f9a236ec1b0efa38906d81d2dc454f35496b877c845268669ccc1dfa3
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -143,6 +148,26 @@ control-plane:
           value: "^/orgs/[^/]+/module-versions/proposed$"
       - path:
           type: RegularExpression
+          value: "^/internal/orgs/[^/]+/projects/[^/]+/envs/[^/]+/module-execution-catalogue$"
+        method: POST
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/modules/[^/]+/drafts/[^/]+/test-snapshots$"
+        method: POST
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/modules/[^/]+/drafts/[^/]+/test-snapshots$"
+        method: OPTIONS
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/modules/[^/]+/draft-test-snapshots/[^/]+$"
+        method: GET
+      - path:
+          type: RegularExpression
+          value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/modules/[^/]+/draft-test-snapshots/[^/]+$"
+        method: OPTIONS
+      - path:
+          type: RegularExpression
           value: "^/orgs/[^/]+/deployment-admissions/[^/]+(/(settle|seal-absence))?$"
       - path:
           type: RegularExpression
@@ -173,12 +198,17 @@ control-plane:
 # The data plane handles deployments, active resources and logs.
 # It is deployed as a backend-module subchart.
 data-plane:
+  # -- Stop the old Data Plane before starting a new version so database
+  # migrations never run beside an older writer during upgrades.
+  strategy:
+    type: Recreate
+
   # -- Container image for the data plane
   image:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v4.0.1@sha256:b38fddb287350ab7d63d4659ce29a78e603257ee95668bd04f96a878d7b5642c
+    tag: v4.1.0-rc.2@sha256:8535b1ccd258f4e9aedcd0496a0a49f3e5393de41a0c4d9594db8749e31c76bd
 
   # -- Service configuration
   service:
@@ -309,6 +339,14 @@ data-plane:
         - path:
             type: RegularExpression
             value: "/orgs/[^/]+/(deployments|deployment-queue|last-deployments|active-resources|metadata-keys)($|/.*)"
+        - path:
+            type: RegularExpression
+            value: "^/orgs/[^/]+/module-test-deployments$"
+          method: POST
+        - path:
+            type: RegularExpression
+            value: "^/orgs/[^/]+/module-test-deployments$"
+          method: OPTIONS
       # -- Request timeout for data plane routes
       timeouts:
         request: 45s
@@ -499,7 +537,7 @@ console:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
     # -- Image tag
-    tag: v1.4.2@sha256:b2b20cbbed92b2a98c51d9fb4e99819d46d23149ea371e9a9a6092a4f1bf8296
+    tag: v1.5.0-rc.1@sha256:1a9d589940cd3e4f01ca742af3d7e74aa1d916f79ae548da1a42476272632834
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
