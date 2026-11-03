@@ -3,35 +3,57 @@ set -eu
 
 chart=${1:-charts/platform-orchestrator}
 rendered=$(mktemp)
-trap 'rm -f "$rendered"' EXIT
+enabled_rendered=$(mktemp)
+trap 'rm -f "$rendered" "$enabled_rendered"' EXIT
 
 helm template platform-orchestrator "$chart" \
   --set-string global.gatewayApi.oidc.hostname=oidc.example.test >"$rendered"
 
+helm template platform-orchestrator "$chart" \
+  --set-string global.gatewayApi.oidc.hostname=oidc.example.test \
+  --set control-plane.gatewayApi.route.observation.enabled=true >"$enabled_rendered"
+
+if helm template platform-orchestrator "$chart" --set-string global.gatewayApi.oidc.hostname=oidc.example.test \
+  --set-string control-plane.gatewayApi.route.observation.enabled=true >/dev/null 2>&1; then
+  echo "string observation flag unexpectedly accepted" >&2
+  exit 1
+fi
+if helm template platform-orchestrator "$chart" --set-string global.gatewayApi.oidc.hostname=oidc.example.test \
+  --set control-plane.gatewayApi.route.observation.enabled=true \
+  --set-json 'control-plane.gatewayApi.route.observation.matches=[]' >/dev/null 2>&1; then
+  echo "empty enabled observation routes unexpectedly accepted" >&2
+  exit 1
+fi
+
 # Inspect the rendered routes, not the input values: a wrongly nested value
 # otherwise looks correct in source while producing no HTTPRoute at all.
-python3 - "$rendered" <<'PY'
+python3 -B - "$rendered" "$enabled_rendered" <<'PY'
 import re
 import sys
 
-with open(sys.argv[1], encoding="utf-8") as stream:
-    documents = stream.read().split("\n---")
+def read_routes(filename):
+    with open(filename, encoding="utf-8") as stream:
+        documents = stream.read().split("\n---")
+    routes = {}
+    for document in documents:
+        if not re.search(r"^kind: HTTPRoute$", document, re.M):
+            continue
+        name = re.search(r"^  name: (\S+)$", document, re.M).group(1)
+        backends = re.findall(r"backendRefs:\s*\n\s*- name: (\S+)", document)
+        paths = []
+        for kind, value in re.findall(r"\bpath:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", document):
+            paths.append((kind, value.strip().strip("\"'")))
+        routes[name] = (backends, paths, document)
+    return routes
 
-routes = {}
-for document in documents:
-    if not re.search(r"^kind: HTTPRoute$", document, re.M):
-        continue
-    name = re.search(r"^  name: (\S+)$", document, re.M).group(1)
-    backends = re.findall(r"backendRefs:\s*\n\s*- name: (\S+)", document)
-    paths = []
-    for kind, value in re.findall(r"\bpath:\s*\n\s*type: (\w+)\s*\n\s*value: (.+)", document):
-        paths.append((kind, value.strip().strip("\"'")))
-    routes[name] = (backends, paths, document)
+routes = read_routes(sys.argv[1])
+enabled_routes = read_routes(sys.argv[2])
 
-def route(service):
+def route(service, inventory=None):
+    inventory = routes if inventory is None else inventory
     name = "platform-orchestrator-" + service
-    assert name in routes, f"missing rendered HTTPRoute: {name}"
-    backends, paths, document = routes[name]
+    assert name in inventory, f"missing rendered HTTPRoute: {name}"
+    backends, paths, document = inventory[name]
     assert backends and all(backend == name.removesuffix("-oidc") for backend in backends), (name, backends)
     return paths, document
 
@@ -209,6 +231,27 @@ for name, (_, _, document) in routes.items():
                      "/internal/orgs/atlas/module-version-pins/pin-1/actions/override"):
             assert not matches(rule_paths, path), f"IAM internal path exposed by {name}: {path}"
 assert set(iam_rules) == {False, True}, iam_rules
+
+# The public optional observation contract belongs to Core only. Internal DP
+# transport and canonical IAM membership checks must not become bypass routes.
+enabled_cp, _ = route("control-plane", enabled_routes)
+assert routes.keys() == enabled_routes.keys(), "optional routes changed service inventory"
+for service in ("data-plane", "iam", "data-plane-oidc"):
+    assert route(service) == route(service, enabled_routes), service
+assert all(path in enabled_cp for path in cp), "ordinary Control Plane routes changed"
+observation = "/orgs/atlas/plugins/dev.example.observer/observations/v1/"
+for suffix in ("runs", "runs/run-1", "runs/run-1/redeploy", "requests/request-1",
+               "requests/request-1/resolve", "grants/grant-1", "targets/query",
+               "redeployments/request-1", "redeployments/request-1/resolve"):
+    path = observation + suffix
+    assert not matches(cp, path), f"observation route enabled by default: {path}"
+    assert matches(enabled_cp, path), f"missing enabled Control Plane observation route: {path}"
+    assert not matches(dp, path) and not matches(iam, path), f"observation bypass: {path}"
+for path in (observation + "capabilities", observation + "runs/run-1/apply",
+             observation + "runs/run-1/redeploy/extra", observation + "targets/query/extra",
+             observation + "grants/grant-1/extra", observation.replace("/v1/", "/v2/") + "runs",
+             "/internal/orgs/atlas/administrators/user-1"):
+    assert not any(matches(paths, path) for paths in (cp, enabled_cp, dp, iam)), path
 
 acknowledgement = "/orgs/atlas/projects/store/envs/prod/deployments/deployment-1/actions/acknowledge-outcome"
 assert not matches(dp, acknowledgement) and not matches(iam, acknowledgement), "outcome acknowledgement belongs to Core only"

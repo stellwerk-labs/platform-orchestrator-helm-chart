@@ -181,6 +181,13 @@ control-plane:
       - path:
           type: RegularExpression
           value: "^/(plugin-packages|plugin-installations(/[^/]+(/(identity|upgrade|organization-mode|actions/[^/]+|organizations/[^/]+))?)?|plugin-entitlement-bundles|plugin-audit-events)$"
+      # -- Optional observation service routes. Enable only with the qualified matching server/Runner set; no plugin is installed or licensed by this switch.
+      observation:
+        enabled: false
+        matches:
+          - path:
+              type: RegularExpression
+              value: "^/orgs/[^/]+/plugins/[^/]+/observations/v1/(runs(/[^/]+(/redeploy)?)?|requests/[^/]+(/resolve)?|grants/[^/]+|redeployments/[^/]+(/resolve)?|targets/query)$"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
