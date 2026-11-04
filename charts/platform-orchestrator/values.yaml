@@ -29,7 +29,7 @@ control-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v3.2.0@sha256:c1bed2510799230823fbcfd203e095b5ff703d253ca1cd1b0b7505c7c095a59e
+    tag: v3.3.0@sha256:53f0ab233e5c8f495fa2f23f859625f22c3523050c46df642df01525798d867c
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -215,7 +215,7 @@ data-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v4.1.0@sha256:58aa4afd98d747ce8aaca42f3ebaeee8e968f40d9749c2bc053d5b16cd5385ec
+    tag: v4.2.0@sha256:1e62ccc0b8f4b0b23cd897817aabded847822e5d871180c405f9cf37de99694f
 
   # -- Service configuration
   service:
@@ -225,7 +225,7 @@ data-plane:
   # -- Configuration environment variables (injected via ConfigMap)
   config:
     # -- Runner image used for deployments. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-runner:vX.Y.Z`
-    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v3.1.0@sha256:6a18787b33aa1c4173982ac5876a62b1cde49307fe1f7a4e86b52f1519134d43
+    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v3.2.0@sha256:944f7698905fc8be4fb3ab29cd7d4ba54a56aef377deef1b6ddaf7d0c2b534f2
     # -- Internal data plane hostname (headless service FQDN)
     # Format: <headless svc name>.<namespace>.svc.cluster.local
     INTERNAL_DATAPLANE_HOSTNAME: platform-orchestrator-data-plane.platform-orchestrator.svc.cluster.local
@@ -376,7 +376,7 @@ runnerGateway:
   replicaCount: 2
   image:
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-runner
-    tag: v3.1.0@sha256:6a18787b33aa1c4173982ac5876a62b1cde49307fe1f7a4e86b52f1519134d43
+    tag: v3.2.0@sha256:944f7698905fc8be4fb3ab29cd7d4ba54a56aef377deef1b6ddaf7d0c2b534f2
     pullPolicy: IfNotPresent
   service:
     port: 8080
@@ -404,7 +404,7 @@ iam:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-iam`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-iam
     # -- Image tag
-    tag: v2.5.1@sha256:6fd166ec8afba6d2de72eb5913c81c2093dc3bdf1682ee3b2e775e9169ef7a2b
+    tag: v2.6.0@sha256:b9667a64ac9e896960ef04fea43cd2d0b3e0bac2dfbebe86ab2ddfbce162f87c
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
