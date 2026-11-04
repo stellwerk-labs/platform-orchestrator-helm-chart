@@ -1,6 +1,21 @@
 {{- if .Values.global.gatewayApi.enabled }}
 {{- $fullname := include "backend-module.fullname" . -}}
 {{- with .Values.gatewayApi.route }}
+{{- $matches := .matches -}}
+{{- $observation := .observation | default dict -}}
+{{- $observationEnabled := false -}}
+{{- if hasKey $observation "enabled" -}}
+{{- if not (kindIs "bool" $observation.enabled) -}}
+{{- fail "gatewayApi.route.observation.enabled must be boolean" -}}
+{{- end -}}
+{{- $observationEnabled = $observation.enabled -}}
+{{- end -}}
+{{- if $observationEnabled -}}
+{{- if or (not (kindIs "slice" $observation.matches)) (empty $observation.matches) -}}
+{{- fail "gatewayApi.route.observation.matches must be a nonempty list when enabled" -}}
+{{- end -}}
+{{- $matches = concat $matches $observation.matches -}}
+{{- end }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -14,7 +29,7 @@ spec:
     - {{ $.Values.global.gatewayApi.backend.hostname | quote }}
   rules:
     - matches:
-        {{- toYaml .matches | nindent 8 }}
+        {{- toYaml $matches | nindent 8 }}
       backendRefs:
         - name: {{ $fullname }}
           port: {{ $.Values.service.port }}
