@@ -410,6 +410,10 @@ iam:
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
+    # -- Console inactivity timeout (positive Go duration). Background requests do not renew sessions.
+    BROWSER_SESSION_IDLE_TIMEOUT: "15m"
+    # -- Fixed lifetime of CLI device-login user tokens (positive Go duration). Service and Runner tokens are unaffected.
+    CLI_SESSION_TOKEN_TTL: "2h"
     # -- Comma-separated Google OAuth client IDs for social login (leave empty to disable)
     ALLOWED_GOOGLE_CLIENT_IDS: ""
     # -- Comma-separated Microsoft OAuth client IDs for social login (leave empty to disable)
@@ -524,7 +528,7 @@ iam:
       matches:
         - path:
             type: RegularExpression
-            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/session(/activity)?|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
@@ -743,6 +747,7 @@ global:
           - Keep-Alive
           - User-Agent
           - X-Requested-With
+          - X-Session-Activity
           - If-Modified-Since
           - Cache-Control
           - Content-Type
