@@ -33,6 +33,8 @@ control-plane:
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
+    # -- Enable deferred Provider deletion only after every CP/DP writer has been upgraded and its usage proof qualified.
+    PROVIDER_RETIREMENT_ENABLED: "false"
     # -- PostgreSQL database name for the control plane
     DATABASE_NAME: "orchestrator-controlplane"
     # -- PostgreSQL port
