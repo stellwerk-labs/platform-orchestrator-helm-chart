@@ -76,6 +76,7 @@ assert matches(dp, "/platform-settings/deployments")
 assert not matches(cp, "/platform-settings/deployments") and not matches(iam, "/platform-settings/deployments")
 
 for path in (
+    "/platform-settings/maintenance-status", "/plugins/dev.example.addon/maintenance",
     "/orgs", "/orgs/atlas", "/orgs/atlas/envs",
     "/internal/orgs/atlas/projects/store/envs/prod/module-execution-catalogue",
     "/orgs/atlas/modules/redis/drafts",
