@@ -346,6 +346,9 @@ data-plane:
       # -- Path matching rules for data plane API endpoints
       matches:
         - path:
+            type: Exact
+            value: /platform-settings/deployments
+        - path:
             type: RegularExpression
             value: "/orgs/[^/]+/(deployments|deployment-queue|last-deployments|active-resources|metadata-keys)($|/.*)"
         - path:
@@ -410,9 +413,15 @@ iam:
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
-    # -- Console inactivity timeout (positive Go duration). Background requests do not renew sessions.
+    # -- Human user UUIDs (comma-separated) allowed to read installation settings. Organization roles do not grant access.
+    PLATFORM_SETTINGS_READERS: ""
+    # -- Human user UUIDs (comma-separated) allowed to change installation settings; writers also read.
+    PLATFORM_SETTINGS_WRITERS: ""
+    # -- Explicit recovery only: reset persisted session policy from environment defaults on IAM startup. Return to false after recovery.
+    SESSION_POLICY_RESET_TO_DEFAULTS: "false"
+    # -- Initial Console inactivity timeout. Persisted runtime policy takes precedence after bootstrap.
     BROWSER_SESSION_IDLE_TIMEOUT: "15m"
-    # -- Fixed lifetime of CLI device-login user tokens (positive Go duration). Service and Runner tokens are unaffected.
+    # -- Initial CLI user-token lifetime. Persisted runtime policy takes precedence; service and Runner tokens are unaffected.
     CLI_SESSION_TOKEN_TTL: "2h"
     # -- Comma-separated Google OAuth client IDs for social login (leave empty to disable)
     ALLOWED_GOOGLE_CLIENT_IDS: ""
@@ -528,7 +537,7 @@ iam:
       matches:
         - path:
             type: RegularExpression
-            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/session(/activity)?|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/session(/activity)?|platform-settings/sessions|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
