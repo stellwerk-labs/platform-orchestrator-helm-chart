@@ -68,7 +68,15 @@ def matches(paths, path):
                 else path == pattern or path.startswith(pattern.rstrip("/") + "/"))
                for kind, pattern in paths)
 
+for path in ("/auth/session", "/auth/session/activity", "/platform-settings/sessions"):
+    assert matches(iam, path), f"browser session route does not reach IAM: {path}"
+    assert not matches(cp, path) and not matches(dp, path), f"browser session routed to another service: {path}"
+
+assert matches(dp, "/platform-settings/deployments")
+assert not matches(cp, "/platform-settings/deployments") and not matches(iam, "/platform-settings/deployments")
+
 for path in (
+    "/platform-settings/maintenance-status", "/plugins/dev.example.addon/maintenance",
     "/orgs", "/orgs/atlas", "/orgs/atlas/envs",
     "/internal/orgs/atlas/projects/store/envs/prod/module-execution-catalogue",
     "/orgs/atlas/modules/redis/drafts",

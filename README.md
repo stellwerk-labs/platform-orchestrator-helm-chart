@@ -2,10 +2,11 @@
 
 Helm charts to install and operate Platform Orchestrator in Kubernetes.
 
-Chart `0.4.3` delivers configurable Casbin RBAC with console-based role
-management and automatically upgrades supported SpiceDB-based installations.
-It retains the HTTPS runner gateway and internal NATS JetStream architecture
-introduced in `0.3.0`, with an application-account-safe NATS bootstrap probe.
+Chart `0.11.0` adds installation session policy and maintenance coordination,
+including gateway routes and operator grants. Provider retirement is available
+with matching backend writers and clients, then explicit activation. See the
+[release notes](docs/releases/v0.11.0.md) for versions, upgrade order and recovery
+limits. Casbin RBAC, the HTTPS Runner gateway and NATS JetStream remain in use.
 
 ## Charts
 

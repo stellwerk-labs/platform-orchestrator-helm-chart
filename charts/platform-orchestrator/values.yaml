@@ -29,10 +29,12 @@ control-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v3.3.0@sha256:53f0ab233e5c8f495fa2f23f859625f22c3523050c46df642df01525798d867c
+    tag: v4.0.0@sha256:19149866ebf5e9905b9de9b89bfe4c80a18165b2020d6671b7f66012e5a5d67e
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
+    # -- Enable deferred Provider deletion only after every CP/DP writer has been upgraded and its usage proof qualified.
+    PROVIDER_RETIREMENT_ENABLED: "false"
     # -- PostgreSQL database name for the control plane
     DATABASE_NAME: "orchestrator-controlplane"
     # -- PostgreSQL port
@@ -173,6 +175,12 @@ control-plane:
           type: RegularExpression
           value: "^/orgs/[^/]+/projects/[^/]+/envs/[^/]+/deployments/[^/]+/actions/acknowledge-outcome$"
       - path:
+          type: Exact
+          value: /platform-settings/maintenance-status
+      - path:
+          type: RegularExpression
+          value: "^/plugins/[^/]+/maintenance$"
+      - path:
           type: RegularExpression
           value: "^/orgs/[^/]+/plugins/[^/]+/(entitlement|inventory|deployment-reads|authorization-checks|operations/[^/]+(/(modules|authorize|control|check|inventory|resource-events|events|pins(/receipts/[^/]+)?|deployments(/[^/]+/reconcile)?))?)$"
       - path:
@@ -215,7 +223,7 @@ data-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v4.2.1@sha256:d72770e4f2e7699ec93c168462989b4cc7beda4e25f3fba297c2b2ac4b6229bc
+    tag: v4.3.0@sha256:e4848128e8cbf38c7561505b10926624e9bf7452f7faf0f2ebb66fe95d9efa1d
 
   # -- Service configuration
   service:
@@ -344,6 +352,9 @@ data-plane:
       # -- Path matching rules for data plane API endpoints
       matches:
         - path:
+            type: Exact
+            value: /platform-settings/deployments
+        - path:
             type: RegularExpression
             value: "/orgs/[^/]+/(deployments|deployment-queue|last-deployments|active-resources|metadata-keys)($|/.*)"
         - path:
@@ -404,10 +415,20 @@ iam:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-iam`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-iam
     # -- Image tag
-    tag: v2.6.0@sha256:b9667a64ac9e896960ef04fea43cd2d0b3e0bac2dfbebe86ab2ddfbce162f87c
+    tag: v2.7.0@sha256:82244e6b4911b06b146c3764797077c8c247c033d735008c05dbd873ff522338
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
+    # -- Human user UUIDs (comma-separated) allowed to read installation settings. Organization roles do not grant access.
+    PLATFORM_SETTINGS_READERS: ""
+    # -- Human user UUIDs (comma-separated) allowed to change installation settings; writers also read.
+    PLATFORM_SETTINGS_WRITERS: ""
+    # -- Explicit recovery only: reset persisted session policy from environment defaults on IAM startup. Return to false after recovery.
+    SESSION_POLICY_RESET_TO_DEFAULTS: "false"
+    # -- Initial Console inactivity timeout. Persisted runtime policy takes precedence after bootstrap.
+    BROWSER_SESSION_IDLE_TIMEOUT: "15m"
+    # -- Initial CLI user-token lifetime. Persisted runtime policy takes precedence; service and Runner tokens are unaffected.
+    CLI_SESSION_TOKEN_TTL: "2h"
     # -- Comma-separated Google OAuth client IDs for social login (leave empty to disable)
     ALLOWED_GOOGLE_CLIENT_IDS: ""
     # -- Comma-separated Microsoft OAuth client IDs for social login (leave empty to disable)
@@ -522,7 +543,7 @@ iam:
       matches:
         - path:
             type: RegularExpression
-            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
+            value: "/(auth/register|auth/logout|auth/login|auth/device|auth/session(/activity)?|platform-settings/sessions|auth/plugin-workload-token|auth/sso/.+|(plugin-workload-bindings(/[^/]+)?)|(platform-principals(/[^/]+(/actions/regenerate)?)?)|(users/.+)|(orgs/[^/]+/members)|(orgs/[^/]+/memberships.*)|(orgs/[^/]+/users/[^/]+/memberships.*)|(orgs/[^/]+/service-users.*)|(orgs/[^/]+/invitations.*)|(orgs/[^/]+/roles.*)|(orgs/[^/]+/permissions)|(orgs/[^/]+/plugins/[^/]+/capabilities)|(orgs/[^/]+/projects/[^/]+/users.*)|(orgs/[^/]+/projects/[^/]+/envs/[^/]+/users.*)|current-user|auth/check-permissions|(devicelogins/.+)|(orgs/[^/]+/scim/group-mappings.*)|(scim/v2/orgs/[^/]+($|/.*)))"
       # -- Admin API route configuration (rewrites /admin/orgs -> /internal/orgs)
       admin:
         matches:
@@ -544,7 +565,7 @@ console:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-frontend`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-frontend
     # -- Image tag
-    tag: v1.5.0@sha256:3db1f2ab9326cbe37a6814b2405d3d4482e9653bb6583cf1ccd11ce74ae7c9f9
+    tag: v1.6.0@sha256:cbd1581c965f1f0e55a18279f78014a7d83643c6789bae8283203e0d42fbf284
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:
@@ -741,6 +762,7 @@ global:
           - Keep-Alive
           - User-Agent
           - X-Requested-With
+          - X-Session-Activity
           - If-Modified-Since
           - Cache-Control
           - Content-Type
