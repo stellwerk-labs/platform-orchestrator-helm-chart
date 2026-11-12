@@ -307,3 +307,7 @@ All secrets are **auto-generated** by the chart (or its subcharts) on first inst
 | `keycloak-bootstrap-admin` | `username`, `password` | keycloak | Keycloak |
 | `keycloak-client-secret` | `clientSecret` | keycloak | Keycloak, IAM |
 | `platform-orchestrator-secrets` | `natsAuthToken`, `runnerTokenSalt`, `runnerGatewayReceiptKey`, `ssoStateSecret`, `superUserToken` | parent chart | Internal messaging, runner gateway, Control Plane, Data Plane, IAM |
+
+## Database transport security
+
+The Core database connections support configurable PostgreSQL TLS. See [Database TLS](../../docs/database-tls.md) for `require`, certificate verification and existing Secret-file mounts. The default remains `disable` for compatibility.

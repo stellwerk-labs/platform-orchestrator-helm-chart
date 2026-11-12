@@ -90,6 +90,9 @@ jobs:
       - name: Test chart release version validation
         run: bash scripts/chart-release-version_test.sh
 
+      - name: Test database TLS configuration and certificate mounts
+        run: python3 scripts/database-tls-contract_test.py
+
       - name: Test immutable chart publication contract
         run: python3 scripts/chart-release-preflight_test.py
 

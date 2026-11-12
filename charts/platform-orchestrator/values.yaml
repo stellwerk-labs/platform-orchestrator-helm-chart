@@ -39,6 +39,8 @@ control-plane:
     DATABASE_NAME: "orchestrator-controlplane"
     # -- PostgreSQL port
     DATABASE_PORT: "5432"
+    # -- PostgreSQL TLS mode. Keep disable for compatibility; require encrypts without plaintext fallback; verify-full also verifies the server identity.
+    DATABASE_SSLMODE: "disable"
     # -- PostgreSQL host (should match the CNPG cluster service name)
     DATABASE_HOST: platform-orchestrator-cnpg-databases
     # -- Vault authentication string
@@ -245,6 +247,8 @@ data-plane:
     DATABASE_NAME: "orchestrator-dataplane"
     # -- PostgreSQL port
     DATABASE_PORT: "5432"
+    # -- PostgreSQL TLS mode. Keep disable for compatibility; require encrypts without plaintext fallback; verify-full also verifies the server identity.
+    DATABASE_SSLMODE: "disable"
     # -- PostgreSQL host (should match the CNPG cluster service name)
     DATABASE_HOST: platform-orchestrator-cnpg-databases
     # -- Vault authentication string
@@ -441,6 +445,8 @@ iam:
     DATABASE_NAME: "orchestrator-iam"
     # -- PostgreSQL port
     DATABASE_PORT: "5432"
+    # -- PostgreSQL TLS mode. Keep disable for compatibility; require encrypts without plaintext fallback; verify-full also verifies the server identity.
+    DATABASE_SSLMODE: "disable"
     # -- PostgreSQL host (should match the CNPG cluster service name)
     DATABASE_HOST: platform-orchestrator-cnpg-databases
     # -- NATS endpoint used for durable identity events
