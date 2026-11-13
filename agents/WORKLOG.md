@@ -10,3 +10,8 @@
 
 - Removed the unreleased price-catalogue ConfigMap setting and regenerated chart documentation; preserved the exact cost-estimation route, all versions and image pins.
 - `make docs`, `helm lint charts/platform-orchestrator` and `helm template cost-policy charts/platform-orchestrator` passed. See `DECISIONS.md` and `LEARNINGS.md`; campaign evidence is `INFRACOST-BACKEND-EVIDENCE.md`.
+
+
+## Managed logs, 2026-11-13
+
+Clarified CORS release notes: DecryptKey header supports legacy caller-owned clients; new Console uses automatic reads without that header. No chart templates, defaults or package inputs changed.
