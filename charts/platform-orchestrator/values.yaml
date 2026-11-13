@@ -772,6 +772,7 @@ global:
           - User-Agent
           - X-Requested-With
           - X-Session-Activity
+          - DecryptKey
           - If-Modified-Since
           - Cache-Control
           - Content-Type
