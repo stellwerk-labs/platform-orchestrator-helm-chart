@@ -2,12 +2,12 @@
 
 {{ template "chart.description" . }}
 
-Chart `0.11.0` exposes installation session settings, browser session activity
-and maintenance coordination. The Console groups these controls and plugin
-management under Administration. Provider retirement remains disabled until
-operators upgrade all writers and clients, verify cleanup coverage, then activate
-it explicitly. See the [release notes](../../docs/releases/v0.11.0.md) and
-[activation guide](../../docs/provider-retirement.md).
+Chart `0.12.0` adds opt-in PostgreSQL TLS settings, installation cost-estimation
+routing and browser access for managed deployment logs. Matching components
+require `deployment_logs_read` for plaintext logs. See the
+[release notes](../../docs/releases/v0.12.0.md) for upgrade order, optional
+Infracost credentials and recovery limits. Provider retirement remains opt-in;
+see the [activation guide](../../docs/provider-retirement.md).
 
 Back up all installation databases and test restoration before upgrading.
 Reverting only images or a Helm revision over newer schemas is not a supported

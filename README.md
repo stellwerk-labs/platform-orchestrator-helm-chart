@@ -2,11 +2,11 @@
 
 Helm charts to install and operate Platform Orchestrator in Kubernetes.
 
-Chart `0.11.0` adds installation session policy and maintenance coordination,
-including gateway routes and operator grants. Provider retirement is available
-with matching backend writers and clients, then explicit activation. See the
-[release notes](docs/releases/v0.11.0.md) for versions, upgrade order and recovery
-limits. Casbin RBAC, the HTTPS Runner gateway and NATS JetStream remain in use.
+Chart `0.12.0` adds opt-in PostgreSQL TLS settings, installation cost-estimation
+routing and browser access for managed deployment logs. Matching components
+require the dedicated `deployment_logs_read` permission for plaintext logs.
+See the [release notes](docs/releases/v0.12.0.md) for upgrade order, optional
+Infracost credentials and recovery limits.
 
 ## Charts
 
