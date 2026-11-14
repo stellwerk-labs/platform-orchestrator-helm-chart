@@ -73,6 +73,16 @@ def normalize_generated_secrets(manifest):
 
 
 class ConsolePluginUiCspContract(unittest.TestCase):
+    def test_log_key_is_allowed_only_as_a_cors_request_header(self):
+        result = render()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        policy = resource(result.stdout, "SecurityPolicy", "platform-orchestrator-backend-gateway")
+        request_headers = policy.split("allowHeaders:", 1)[1].split("allowMethods:", 1)[0]
+        self.assertIn("- DecryptKey", request_headers)
+        self.assertNotIn("DecryptKey", policy.split("cors:", 1)[0])
+        response_headers = policy.split("exposeHeaders:", 1)[1].split("maxAge:", 1)[0]
+        self.assertNotIn("DecryptKey", response_headers)
+
     @classmethod
     def setUpClass(cls):
         result = render()
