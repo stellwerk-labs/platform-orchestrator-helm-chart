@@ -2,11 +2,10 @@
 
 Helm charts to install and operate Platform Orchestrator in Kubernetes.
 
-Chart `0.12.0` adds opt-in PostgreSQL TLS settings, installation cost-estimation
-routing and browser access for managed deployment logs. Matching components
-require the dedicated `deployment_logs_read` permission for plaintext logs.
-See the [release notes](docs/releases/v0.12.0.md) for upgrade order, optional
-Infracost credentials and recovery limits.
+Chart `0.12.1` pins Data Plane `4.4.1`, which distinguishes missing deployment
+history from an actual Environment identity change during readiness inspection.
+See the [release notes](docs/releases/v0.12.1.md) for the compatible component set
+and the retained upgrade and recovery requirements.
 
 ## Charts
 

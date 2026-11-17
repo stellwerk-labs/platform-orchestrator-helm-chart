@@ -2,12 +2,11 @@
 
 {{ template "chart.description" . }}
 
-Chart `0.12.0` adds opt-in PostgreSQL TLS settings, installation cost-estimation
-routing and browser access for managed deployment logs. Matching components
-require `deployment_logs_read` for plaintext logs. See the
-[release notes](../../docs/releases/v0.12.0.md) for upgrade order, optional
-Infracost credentials and recovery limits. Provider retirement remains opt-in;
-see the [activation guide](../../docs/provider-retirement.md).
+Chart `0.12.1` pins Data Plane `4.4.1`, which distinguishes missing deployment
+history from an actual Environment identity change during readiness inspection.
+See the [release notes](../../docs/releases/v0.12.1.md) for the compatible
+component set and retained upgrade and recovery requirements. Provider retirement
+remains opt-in; see the [activation guide](../../docs/provider-retirement.md).
 
 Back up all installation databases and test restoration before upgrading.
 Reverting only images or a Helm revision over newer schemas is not a supported
