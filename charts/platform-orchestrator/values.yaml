@@ -225,7 +225,7 @@ data-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-dp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-dp
     # -- Image tag
-    tag: v4.4.0@sha256:cdab42c0f86ec742a8298e4e776c82c170eae4fff1df4cc6011e04165a3b4903
+    tag: v4.4.1@sha256:8bbbf9c925117b7757b5286e4aa660d2f9b00a34bd6a5699fb83f12e1b3c40ab
 
   # -- Service configuration
   service:
