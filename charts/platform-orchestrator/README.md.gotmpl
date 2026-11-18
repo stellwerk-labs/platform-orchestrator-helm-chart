@@ -2,10 +2,10 @@
 
 {{ template "chart.description" . }}
 
-Chart `0.12.1` pins Data Plane `4.4.1`, which distinguishes missing deployment
-history from an actual Environment identity change during readiness inspection.
-See the [release notes](../../docs/releases/v0.12.1.md) for the compatible
-component set and retained upgrade and recovery requirements. Provider retirement
+Chart `0.12.2` pins Control Plane `4.1.1` for deletion-aware observation recovery.
+Upgrade Core before Drift Detection `0.1.2`. Core schema `57` requires a verified
+coordinated recovery point. See the [release notes](../../docs/releases/v0.12.2.md)
+for the compatible component set and recovery requirements. Provider retirement
 remains opt-in; see the [activation guide](../../docs/provider-retirement.md).
 
 Back up all installation databases and test restoration before upgrading.

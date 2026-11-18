@@ -29,7 +29,7 @@ control-plane:
     # -- Image repository. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-cp`
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-cp
     # -- Image tag
-    tag: v4.1.0@sha256:823fac9521d5a963e498f8601322a1a6b2f0d3b5e69567147a917391fcde29c3
+    tag: v4.1.1@sha256:1ca83c57d1167b858f4ea4e67e4a05a44f74898f31667f71725d7c088b11e738
 
   # -- Configuration environment variables (injected via ConfigMap)
   config:

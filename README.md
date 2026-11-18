@@ -2,10 +2,11 @@
 
 Helm charts to install and operate Platform Orchestrator in Kubernetes.
 
-Chart `0.12.1` pins Data Plane `4.4.1`, which distinguishes missing deployment
-history from an actual Environment identity change during readiness inspection.
-See the [release notes](docs/releases/v0.12.1.md) for the compatible component set
-and the retained upgrade and recovery requirements.
+Chart `0.12.2` pins Control Plane `4.1.1` for deletion-aware observation recovery.
+Upgrade Core before Drift Detection `0.1.2`. Core schema `57` requires a verified
+coordinated recovery point; reverting only images or a Helm revision cannot
+restore it. See the [release notes](docs/releases/v0.12.2.md) for the compatible
+component set and upgrade requirements.
 
 ## Charts
 
