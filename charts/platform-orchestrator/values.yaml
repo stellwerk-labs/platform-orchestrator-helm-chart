@@ -235,7 +235,7 @@ data-plane:
   # -- Configuration environment variables (injected via ConfigMap)
   config:
     # -- Runner image used for deployments. Prepend repository hostname and path as per your setup, e.g. `my-registry.example.com/orchestrator/platform-orchestrator-runner:vX.Y.Z`
-    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v3.3.0@sha256:ed96efa1a5c848f9e879b3aa60712df18f497190c0097cf3c1c8cc4157d0314f
+    RUNNER_IMAGE: ghcr.io/stellwerk-labs/platform-orchestrator-runner:v3.3.1@sha256:5e6a09c4a9e51a5d97c8c88be56cbeeac6fc4cfdffa2408062a682bc74954b39
     # -- Internal data plane hostname (headless service FQDN)
     # Format: <headless svc name>.<namespace>.svc.cluster.local
     INTERNAL_DATAPLANE_HOSTNAME: platform-orchestrator-data-plane.platform-orchestrator.svc.cluster.local
@@ -394,7 +394,7 @@ runnerGateway:
   replicaCount: 2
   image:
     repository: ghcr.io/stellwerk-labs/platform-orchestrator-runner
-    tag: v3.3.0@sha256:ed96efa1a5c848f9e879b3aa60712df18f497190c0097cf3c1c8cc4157d0314f
+    tag: v3.3.1@sha256:5e6a09c4a9e51a5d97c8c88be56cbeeac6fc4cfdffa2408062a682bc74954b39
     pullPolicy: IfNotPresent
   service:
     port: 8080

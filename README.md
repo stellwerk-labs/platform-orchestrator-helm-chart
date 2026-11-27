@@ -2,10 +2,10 @@
 
 Helm charts to install and operate Platform Orchestrator in Kubernetes.
 
-Chart `0.12.3` pins Control Plane `4.1.2`, Data Plane `4.4.2` and IAM `2.8.2`,
-which fix GO-2026-6974 in the OpenTelemetry Go SDK. See the
-[release notes](docs/releases/v0.12.3.md) for the compatible component set and
-the retained upgrade requirements.
+Chart `0.12.4` pins Runner `3.3.1`, which fixes GO-2026-6974 and GO-2026-6278
+in its bundled Infracost, next to Control Plane `4.1.2`, Data Plane `4.4.2` and
+IAM `2.8.2`. See the [release notes](docs/releases/v0.12.4.md) for the
+compatible component set and the retained upgrade requirements.
 
 ## Charts
 
