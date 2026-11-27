@@ -104,8 +104,10 @@ class WorkflowContractTests(unittest.TestCase):
         release = self.jobs["release"]
         order = [release.index(part) for part in (
             "--check-unpublished", 'gh release create "$RELEASE_TAG" "$chart"',
-            'helm push "$chart"', 'gh release edit "$RELEASE_TAG"')]
+            'scripts/push-chart.sh "$chart"', 'gh release edit "$RELEASE_TAG"')]
         self.assertEqual(order, sorted(order))
+        # The push goes through the registry-lag retry, never an inline helm push.
+        self.assertNotIn("helm push", release)
         reserve = release[order[1]:order[2]]
         self.assertIn("--verify-tag", reserve)
         self.assertIn("--draft", reserve)
