@@ -120,7 +120,7 @@ jobs:
             --draft \
             "${release_flags[@]}" \
             --notes-file "$notes"
-          helm push "$chart" oci://ghcr.io/stellwerk-labs/charts
+          bash scripts/push-chart.sh "$chart" oci://ghcr.io/stellwerk-labs/charts
           gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
             --draft=false "${release_flags[@]}"
 

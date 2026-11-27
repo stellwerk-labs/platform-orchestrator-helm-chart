@@ -96,6 +96,9 @@ jobs:
       - name: Test immutable chart publication contract
         run: python3 scripts/chart-release-preflight_test.py
 
+      - name: Test chart push retry against a lagging registry
+        run: python3 scripts/push-chart_test.py
+
       - name: Test NATS bootstrap contract
         run: bash scripts/nats-bootstrap-contract_test.sh
 
