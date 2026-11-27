@@ -6,8 +6,8 @@
 # helm push uploads the manifest by digest and then tags it, and GHCR can answer the lookup of a manifest
 # it has just accepted with 404 for a moment (chart 0.12.3 lost its publisher run to it). The push is
 # content-addressed, so it is repeated for exactly that error; anything else, a timeout included, fails at
-# once. A failed attempt may already have written the tag, so the caller checks the destination's absence
-# once, before this script, never between attempts.
+# once. A failed attempt has already uploaded the blobs and the manifest, so the caller checks the
+# destination's absence once, before this script, never between attempts.
 set -euo pipefail
 usage="usage: push-chart.sh CHART_TGZ OCI_REPOSITORY [helm push flags...]"
 chart="${1:?$usage}"

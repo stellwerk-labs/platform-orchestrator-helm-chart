@@ -126,6 +126,7 @@ class WorkflowContractTests(unittest.TestCase):
     def test_validator_is_part_of_reusable_ci(self):
         lint = (ROOT / ".github/workflows/lint-test.yaml").read_text()
         self.assertIn("run: python3 scripts/chart-release-preflight_test.py", lint)
+        self.assertIn("run: python3 scripts/push-chart_test.py", lint)
 
     def test_release_and_reusable_ci_pin_the_qualified_helm_version(self):
         for name in ("release-chart.yaml", "lint-test.yaml"):

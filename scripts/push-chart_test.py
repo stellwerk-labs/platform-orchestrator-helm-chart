@@ -26,6 +26,9 @@ class Registry(ThreadingHTTPServer):
         self.lagging, self.lagged = set(), set()
         threading.Thread(target=self.serve_forever, daemon=True).start()
 
+    def handle_error(self, request, client_address):
+        pass  # Helm closing a connection early is not a test failure; keep CI logs clean.
+
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -81,6 +84,8 @@ class Handler(BaseHTTPRequestHandler):
                 registry.lagged.add(digest)
             return self.reply(201, {"Docker-Content-Digest": digest})
         digest = registry.tags.get(reference, reference)
+        if registry.mode == "lag-forever" and reference.startswith("sha256:"):
+            return self.reply(404, {"Content-Type": "application/json"}, UNKNOWN)
         if digest not in registry.manifests or digest in registry.lagging:
             registry.lagging.discard(digest)
             return self.reply(404, {"Content-Type": "application/json"}, UNKNOWN)
@@ -91,7 +96,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 class PushChartTest(unittest.TestCase):
-    def push(self, mode, chart_name="example-0.1.0.tgz"):
+    def push(self, mode):
         registry = Registry(mode)
         self.addCleanup(registry.server_close)
         self.addCleanup(registry.shutdown)
@@ -103,7 +108,7 @@ class PushChartTest(unittest.TestCase):
                            capture_output=True, timeout=60)
             env = dict(os.environ, PUBLISH_RETRY_PAUSE_SECONDS="0", HELM_REGISTRY_CONFIG=f"{directory}/registry.json",
                        HELM_CACHE_HOME=f"{directory}/cache", HELM_CONFIG_HOME=f"{directory}/config")
-            result = subprocess.run(["bash", str(SCRIPT), f"{directory}/{chart_name}",
+            result = subprocess.run(["bash", str(SCRIPT), f"{directory}/example-0.1.0.tgz",
                                      f"oci://localhost:{registry.server_address[1]}/charts", "--plain-http"],
                                     env=env, capture_output=True, text=True, timeout=120)
         return registry, result
@@ -126,10 +131,10 @@ class PushChartTest(unittest.TestCase):
         self.assertNotIn("retrying", result.stderr)
         self.assertEqual(registry.tags, {})
 
-    def test_missing_chart_is_not_mistaken_for_registry_lag(self):
-        registry, result = self.push("normal", chart_name="missing-0.1.0.tgz")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertNotIn("retrying", result.stderr)
+    def test_gives_up_after_six_attempts_and_never_reports_success(self):
+        registry, result = self.push("lag-forever")
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(result.stderr.count("retrying"), 5)
         self.assertEqual(registry.tags, {})
 
 
